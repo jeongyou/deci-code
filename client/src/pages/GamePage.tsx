@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { GameRoom, Tile, Player } from '../types';
+import type { GameRoom, Tile, Player } from '../types';
 import { TileCard } from '../components/TileCard';
 
 interface Props {

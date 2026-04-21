@@ -1,4 +1,4 @@
-import { Tile } from '../types';
+import type { Tile } from '../types';
 
 interface Props {
   tile: Tile;

@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { GameRoom, Tile } from './types';
+import type { GameRoom, Tile } from './types';
 import { useSocket } from './hooks/useSocket';
 import { LobbyPage } from './pages/LobbyPage';
 import { WaitingRoom } from './pages/WaitingRoom';

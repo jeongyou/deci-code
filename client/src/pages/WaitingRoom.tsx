@@ -1,4 +1,4 @@
-import { GameRoom, Player } from '../types';
+import type { GameRoom, Player } from '../types';
 
 interface Props {
   room: GameRoom;
@@ -8,7 +8,6 @@ interface Props {
 
 export function WaitingRoom({ room, myId, onReady }: Props) {
   const me = room.players.find(p => p.id === myId);
-  const allReady = room.players.length >= 2 && room.players.every(p => p.isReady);
 
   return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
@@ -22,7 +21,7 @@ export function WaitingRoom({ room, myId, onReady }: Props) {
         </div>
 
         <div className="bg-slate-800 rounded-2xl p-6 shadow-xl">
-          <h2 className="text-white font-bold mb-4 text-sm uppercase tracking-widest text-slate-400">
+          <h2 className="text-slate-400 font-bold mb-4 text-sm uppercase tracking-widest">
             플레이어 ({room.players.length}/4)
           </h2>
 
