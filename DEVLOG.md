@@ -24,6 +24,14 @@
 - vitest 설치, gameLogic.ts 유닛 테스트 16개 추가 (전 함수 커버)
 - `cd server && pnpm test` 로 실행
 
+### 룰 수정 및 리팩토링
+- 추리 실패 시 뽑은 타일 공개 룰 추가
+- 덱 빈 상태 추리 실패 → 내 타일 직접 선택 공개 (must_reveal_tile 이벤트)
+- 정렬 버그 수정: 같은 숫자는 검정이 흰색보다 앞
+- 상대/내 패 흑·백 분리 표시
+- TileCard boolean props → variant/size 명시적 타입으로 교체
+- GamePage → TurnBanner, OpponentArea, GuessPanel, MyHand 서브컴포넌트 분리
+- 전체 UI 리디자인 (#0d1117 배경, 물리 타일 느낌)
+
 ### 다음 작업
 - [ ] 배포 (Vercel + Render)
-- [ ] 코드 리팩토링 (react-best-practices, composition-patterns 적용)
