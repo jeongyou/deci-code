@@ -7,3 +7,5 @@ dist-ssr
 pnpm-debug.log*
 .env
 .env.local
+.env.*
+.claude/settings.local.json
