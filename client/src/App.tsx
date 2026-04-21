@@ -19,6 +19,7 @@ export default function App() {
   const myIdRef = useRef<string>('');
   const [drawnTile, setDrawnTile] = useState<Tile | null>(null);
   const [hasDrawnThisTurn, setHasDrawnThisTurn] = useState(false);
+  const [mustRevealTile, setMustRevealTile] = useState(false);
   const [lastGuessResult, setLastGuessResult] = useState<{ correct: boolean; tile: Tile } | null>(null);
   const [gameOver, setGameOver] = useState<GameOver | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -34,10 +35,14 @@ export default function App() {
 
     onRoomUpdated: useCallback((r: GameRoom) => {
       setRoom(r);
-      // 내 턴이 아니게 되면 뽑기 상태 초기화
-      if (r.players[r.currentTurnIndex]?.id !== myIdRef.current) {
+      const isMyTurn = r.players[r.currentTurnIndex]?.id === myIdRef.current;
+      if (!isMyTurn) {
         setHasDrawnThisTurn(false);
         setDrawnTile(null);
+        setMustRevealTile(false);
+      } else if (r.deck.length === 0) {
+        // 덱이 비었으면 뽑기 없이 바로 추리 가능
+        setHasDrawnThisTurn(true);
       }
     }, []),
 
@@ -45,6 +50,7 @@ export default function App() {
       setRoom(r);
       setDrawnTile(null);
       setHasDrawnThisTurn(false);
+      setMustRevealTile(false);
       setLastGuessResult(null);
       setPage('game');
     }, []),
@@ -56,11 +62,15 @@ export default function App() {
 
     onGuessResult: useCallback((correct: boolean, tile: Tile) => {
       setLastGuessResult({ correct, tile });
-      setDrawnTile(null); // 뽑은 타일은 이미 패에 추가됨
+      setDrawnTile(null);
       if (!correct) {
-        setHasDrawnThisTurn(false); // 틀리면 턴 넘어감
+        setHasDrawnThisTurn(false);
       }
       setTimeout(() => setLastGuessResult(null), 2500);
+    }, []),
+
+    onMustRevealTile: useCallback(() => {
+      setMustRevealTile(true);
     }, []),
 
     onGameOver: useCallback((winnerId: string, winnerNickname: string) => {
@@ -90,6 +100,7 @@ export default function App() {
     myIdRef.current = '';
     setDrawnTile(null);
     setHasDrawnThisTurn(false);
+    setMustRevealTile(false);
     setLastGuessResult(null);
     setGameOver(null);
     setError(null);
@@ -99,11 +110,7 @@ export default function App() {
     return (
       <>
         <LobbyPage onJoinRoom={handleJoinRoom} onJoinRandom={handleJoinRandom} />
-        {error && (
-          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-red-500 text-white px-5 py-3 rounded-xl shadow-lg text-sm font-medium">
-            {error}
-          </div>
-        )}
+        {error && <ErrorToast message={error} />}
       </>
     );
   }
@@ -112,11 +119,7 @@ export default function App() {
     return (
       <>
         <WaitingRoom room={room} myId={myId} onReady={socket.setReady} />
-        {error && (
-          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-red-500 text-white px-5 py-3 rounded-xl shadow-lg text-sm font-medium">
-            {error}
-          </div>
-        )}
+        {error && <ErrorToast message={error} />}
       </>
     );
   }
@@ -129,16 +132,14 @@ export default function App() {
           myId={myId}
           drawnTile={drawnTile}
           hasDrawnThisTurn={hasDrawnThisTurn}
+          mustRevealTile={mustRevealTile}
           onDrawTile={socket.drawTile}
           onGuessTile={socket.guessTile}
           onSkipGuess={socket.skipGuess}
+          onRevealOwnTile={socket.revealOwnTile}
           lastGuessResult={lastGuessResult}
         />
-        {error && (
-          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-red-500 text-white px-5 py-3 rounded-xl shadow-lg text-sm font-medium">
-            {error}
-          </div>
-        )}
+        {error && <ErrorToast message={error} />}
       </>
     );
   }
@@ -146,21 +147,21 @@ export default function App() {
   if (page === 'finished') {
     const isWinner = gameOver?.winnerId === myId;
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#0d1117] flex items-center justify-center p-4">
         <div className="w-full max-w-sm text-center">
-          <div className="bg-slate-800 rounded-2xl p-8 shadow-xl space-y-4">
+          <div className="bg-white/4 border border-white/8 rounded-2xl p-8 space-y-4">
             <div className="text-6xl">{isWinner ? '🏆' : '💀'}</div>
             <h1 className="text-3xl font-black text-white">
               {isWinner ? '승리!' : '패배'}
             </h1>
-            <p className="text-slate-400">
+            <p className="text-white/40">
               {isWinner
                 ? '모든 상대 타일을 맞혔습니다!'
                 : `${gameOver?.winnerNickname ?? '상대방'}이(가) 승리했습니다.`}
             </p>
             <button
               onClick={handleBackToLobby}
-              className="w-full bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold py-3 rounded-xl transition-colors mt-2"
+              className="w-full bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold py-3.5 rounded-xl transition-colors"
             >
               로비로 돌아가기
             </button>
@@ -171,4 +172,12 @@ export default function App() {
   }
 
   return null;
+}
+
+function ErrorToast({ message }: { message: string }) {
+  return (
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-red-500 text-white px-5 py-3 rounded-xl shadow-lg text-sm font-medium whitespace-nowrap">
+      {message}
+    </div>
+  );
 }

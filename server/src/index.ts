@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import {
   createRoom, addPlayer, dealInitialTiles, drawTile,
   guessPlayerTile, addDrawnTileToPlayer, nextTurn,
-  checkWinner, isPlayerEliminated,
+  checkWinner, isPlayerEliminated, revealOwnTile,
 } from './gameLogic';
 import { GameRoom } from './types';
 
@@ -134,13 +134,38 @@ io.on('connection', (socket) => {
       }
       io.to(room.id).emit('room_updated', room);
     } else {
-      // 틀리면 뽑은 타일 패에 추가하고 턴 넘김
       if (room.drawnTile) {
+        // 뽑은 타일 공개 후 패에 추가하고 턴 넘김
+        room.drawnTile.isRevealed = true;
         addDrawnTileToPlayer(room, socket.id);
+        nextTurn(room);
+        io.to(room.id).emit('room_updated', room);
+      } else {
+        // 덱이 비어 뽑은 타일 없음 → 자기 타일 직접 선택해서 공개
+        socket.emit('must_reveal_tile');
+        io.to(room.id).emit('room_updated', room);
       }
-      nextTurn(room);
-      io.to(room.id).emit('room_updated', room);
     }
+  });
+
+  socket.on('reveal_own_tile', (tileId: string) => {
+    const room = findRoomByPlayer(socket.id);
+    if (!room || room.status !== 'playing') return;
+    if (room.players[room.currentTurnIndex].id !== socket.id) return;
+
+    const revealed = revealOwnTile(room, socket.id, tileId);
+    if (!revealed) return;
+
+    const winner = checkWinner(room);
+    if (winner) {
+      room.status = 'finished';
+      room.winner = winner.id;
+      io.to(room.id).emit('game_over', winner.id, winner.nickname);
+      return;
+    }
+
+    nextTurn(room);
+    io.to(room.id).emit('room_updated', room);
   });
 
   socket.on('skip_guess', () => {

@@ -10,6 +10,7 @@ export interface SocketEvents {
   onGameStarted?: (room: GameRoom) => void;
   onTileDrawn?: (tile: Tile) => void;
   onGuessResult?: (correct: boolean, tile: Tile) => void;
+  onMustRevealTile?: () => void;
   onGameOver?: (winnerId: string, winnerNickname: string) => void;
   onError?: (message: string) => void;
 }
@@ -26,6 +27,7 @@ export function useSocket(events: SocketEvents) {
     socket.on('game_started', (room) => events.onGameStarted?.(room));
     socket.on('tile_drawn', (tile) => events.onTileDrawn?.(tile));
     socket.on('guess_result', (correct, tile) => events.onGuessResult?.(correct, tile));
+    socket.on('must_reveal_tile', () => events.onMustRevealTile?.());
     socket.on('game_over', (winnerId, winnerNickname) => events.onGameOver?.(winnerId, winnerNickname));
     socket.on('error', (msg) => events.onError?.(msg));
 
@@ -42,5 +44,6 @@ export function useSocket(events: SocketEvents) {
     guessTile: (targetPlayerId: string, tileId: string, guessedNumber: number | null) =>
       socketRef.current?.emit('guess_tile', targetPlayerId, tileId, guessedNumber),
     skipGuess: () => socketRef.current?.emit('skip_guess'),
+    revealOwnTile: (tileId: string) => socketRef.current?.emit('reveal_own_tile', tileId),
   };
 }

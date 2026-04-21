@@ -29,8 +29,8 @@ export function sortTiles(tiles: Tile[]): Tile[] {
     const an = a.number ?? 12; // 조커는 맨 뒤
     const bn = b.number ?? 12;
     if (an !== bn) return an - bn;
-    // 같은 숫자면 흰색이 앞
-    return a.color === 'white' ? -1 : 1;
+    // 같은 숫자면 검은색이 앞
+    return a.color === 'black' ? -1 : 1;
   });
 }
 
@@ -102,6 +102,15 @@ export function checkWinner(room: GameRoom): Player | null {
   const alive = room.players.filter(p => !isPlayerEliminated(p));
   if (alive.length === 1) return alive[0];
   return null;
+}
+
+export function revealOwnTile(room: GameRoom, playerId: string, tileId: string): boolean {
+  const player = room.players.find(p => p.id === playerId);
+  if (!player) return false;
+  const tile = player.tiles.find(t => t.id === tileId && !t.isRevealed);
+  if (!tile) return false;
+  tile.isRevealed = true;
+  return true;
 }
 
 export function createRoom(id: string): GameRoom {
