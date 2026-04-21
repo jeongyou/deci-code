@@ -6,13 +6,14 @@ interface Props {
   room: GameRoom;
   myId: string;
   drawnTile: Tile | null;
+  hasDrawnThisTurn: boolean;
   onDrawTile: () => void;
   onGuessTile: (targetPlayerId: string, tileId: string, guessedNumber: number | null) => void;
   onSkipGuess: () => void;
   lastGuessResult: { correct: boolean; tile: Tile } | null;
 }
 
-export function GamePage({ room, myId, drawnTile, onDrawTile, onGuessTile, onSkipGuess, lastGuessResult }: Props) {
+export function GamePage({ room, myId, drawnTile, hasDrawnThisTurn, onDrawTile, onGuessTile, onSkipGuess, lastGuessResult }: Props) {
   const [selectedTarget, setSelectedTarget] = useState<{ playerId: string; tileId: string } | null>(null);
   const [guessNumber, setGuessNumber] = useState<number | null>(null);
   const [isJokerGuess, setIsJokerGuess] = useState(false);
@@ -21,7 +22,7 @@ export function GamePage({ room, myId, drawnTile, onDrawTile, onGuessTile, onSki
   const isMyTurn = room.players[room.currentTurnIndex]?.id === myId;
   const currentPlayer = room.players[room.currentTurnIndex];
   const opponents = room.players.filter(p => p.id !== myId);
-  const hasDrawn = !!drawnTile;
+  const hasDrawn = hasDrawnThisTurn;
 
   const handleTileClick = (playerId: string, tileId: string) => {
     if (!isMyTurn || !hasDrawn) return;

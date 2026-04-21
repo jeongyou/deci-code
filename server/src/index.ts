@@ -68,7 +68,7 @@ io.on('connection', (socket) => {
       }
       io.to(roomId).emit('room_updated', room);
     } else {
-      socket.emit('error', '매칭 대기 중...');
+      socket.emit('waiting_for_match');
     }
   });
 

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import type { GameRoom, Tile } from './types';
 import { useSocket } from './hooks/useSocket';
 import { LobbyPage } from './pages/LobbyPage';
@@ -16,7 +16,9 @@ export default function App() {
   const [page, setPage] = useState<Page>('lobby');
   const [room, setRoom] = useState<GameRoom | null>(null);
   const [myId, setMyId] = useState<string>('');
+  const myIdRef = useRef<string>('');
   const [drawnTile, setDrawnTile] = useState<Tile | null>(null);
+  const [hasDrawnThisTurn, setHasDrawnThisTurn] = useState(false);
   const [lastGuessResult, setLastGuessResult] = useState<{ correct: boolean; tile: Tile } | null>(null);
   const [gameOver, setGameOver] = useState<GameOver | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -25,28 +27,39 @@ export default function App() {
     onRoomJoined: useCallback((r: GameRoom, id: string) => {
       setRoom(r);
       setMyId(id);
+      myIdRef.current = id;
       setPage('waiting');
       setError(null);
     }, []),
 
     onRoomUpdated: useCallback((r: GameRoom) => {
       setRoom(r);
+      // 내 턴이 아니게 되면 뽑기 상태 초기화
+      if (r.players[r.currentTurnIndex]?.id !== myIdRef.current) {
+        setHasDrawnThisTurn(false);
+        setDrawnTile(null);
+      }
     }, []),
 
     onGameStarted: useCallback((r: GameRoom) => {
       setRoom(r);
       setDrawnTile(null);
+      setHasDrawnThisTurn(false);
       setLastGuessResult(null);
       setPage('game');
     }, []),
 
     onTileDrawn: useCallback((tile: Tile) => {
       setDrawnTile(tile);
+      setHasDrawnThisTurn(true);
     }, []),
 
     onGuessResult: useCallback((correct: boolean, tile: Tile) => {
       setLastGuessResult({ correct, tile });
-      setDrawnTile(null);
+      setDrawnTile(null); // 뽑은 타일은 이미 패에 추가됨
+      if (!correct) {
+        setHasDrawnThisTurn(false); // 틀리면 턴 넘어감
+      }
       setTimeout(() => setLastGuessResult(null), 2500);
     }, []),
 
@@ -74,7 +87,9 @@ export default function App() {
     setPage('lobby');
     setRoom(null);
     setMyId('');
+    myIdRef.current = '';
     setDrawnTile(null);
+    setHasDrawnThisTurn(false);
     setLastGuessResult(null);
     setGameOver(null);
     setError(null);
@@ -113,6 +128,7 @@ export default function App() {
           room={room}
           myId={myId}
           drawnTile={drawnTile}
+          hasDrawnThisTurn={hasDrawnThisTurn}
           onDrawTile={socket.drawTile}
           onGuessTile={socket.guessTile}
           onSkipGuess={socket.skipGuess}
