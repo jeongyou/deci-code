@@ -5,122 +5,99 @@ interface Props {
   onJoinRandom: (nickname: string) => void;
 }
 
+type Mode = 'home' | 'create' | 'join';
+
 export function LobbyPage({ onJoinRoom, onJoinRandom }: Props) {
   const [nickname, setNickname] = useState('');
   const [roomId, setRoomId] = useState('');
-  const [mode, setMode] = useState<'home' | 'create' | 'join'>('home');
+  const [mode, setMode] = useState<Mode>('home');
 
-  const canProceed = nickname.trim().length >= 1;
+  const ready = nickname.trim().length >= 1;
 
   const handleCreate = () => {
-    if (!canProceed) return;
+    if (!ready) return;
     const id = Math.random().toString(36).substring(2, 8).toUpperCase();
     onJoinRoom(id, nickname.trim());
   };
 
   const handleJoin = () => {
-    if (!canProceed || !roomId.trim()) return;
+    if (!ready || !roomId.trim()) return;
     onJoinRoom(roomId.trim().toUpperCase(), nickname.trim());
   };
 
-  const handleRandom = () => {
-    if (!canProceed) return;
-    onJoinRandom(nickname.trim());
-  };
-
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-sm">
-        {/* 타이틀 */}
+    <div className="min-h-screen bg-[#0d1117] flex items-center justify-center p-4">
+      <div className="w-full max-w-xs">
+
         <div className="text-center mb-10">
-          <h1 className="text-5xl font-black text-white tracking-tight mb-2">
-            Da Vinci
+          <p className="text-amber-400/60 text-xs tracking-[0.3em] uppercase mb-3">Number Deduction Game</p>
+          <h1 className="text-6xl font-black tracking-tight leading-none">
+            <span className="text-white">Da </span>
+            <span className="text-amber-400">Vinci</span>
           </h1>
-          <h2 className="text-5xl font-black tracking-tight mb-2">
-            <span className="text-amber-400">Code</span>
-          </h2>
-          <p className="text-slate-400 text-sm">숫자 타일 추리 게임</p>
+          <h2 className="text-6xl font-black tracking-tight text-white/20 mt-1">Code</h2>
         </div>
 
-        <div className="bg-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
-          {/* 닉네임 */}
+        <div className="space-y-3">
           <div>
-            <label className="text-slate-400 text-xs uppercase tracking-widest mb-1.5 block">
-              닉네임
-            </label>
             <input
               type="text"
               value={nickname}
               onChange={e => setNickname(e.target.value)}
-              placeholder="이름을 입력하세요"
+              onKeyDown={e => e.key === 'Enter' && ready && setMode('create')}
+              placeholder="닉네임"
               maxLength={10}
-              className="w-full bg-slate-700 text-white rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-amber-400 placeholder:text-slate-500"
+              className="w-full bg-white/5 border border-white/10 text-white rounded-2xl px-4 py-3.5 outline-none focus:border-amber-400/60 focus:bg-white/8 placeholder:text-white/20 transition-colors"
             />
           </div>
 
           {mode === 'home' && (
-            <div className="space-y-2.5 pt-1">
+            <div className="space-y-2 pt-1">
               <button
-                onClick={() => setMode('create')}
-                disabled={!canProceed}
-                className="w-full bg-amber-400 hover:bg-amber-300 disabled:opacity-40 text-slate-900 font-bold py-3 rounded-xl transition-colors"
+                onClick={handleCreate}
+                disabled={!ready}
+                className="w-full bg-amber-400 hover:bg-amber-300 disabled:opacity-20 text-slate-900 font-bold py-3.5 rounded-2xl transition-colors"
               >
                 방 만들기
               </button>
               <button
                 onClick={() => setMode('join')}
-                disabled={!canProceed}
-                className="w-full bg-slate-700 hover:bg-slate-600 disabled:opacity-40 text-white font-bold py-3 rounded-xl transition-colors"
+                disabled={!ready}
+                className="w-full bg-white/8 hover:bg-white/12 disabled:opacity-20 border border-white/10 text-white font-medium py-3.5 rounded-2xl transition-colors"
               >
-                방 코드로 입장
+                코드로 입장
               </button>
               <button
-                onClick={handleRandom}
-                disabled={!canProceed}
-                className="w-full bg-slate-700 hover:bg-slate-600 disabled:opacity-40 text-white font-bold py-3 rounded-xl transition-colors"
+                onClick={() => ready && onJoinRandom(nickname.trim())}
+                disabled={!ready}
+                className="w-full bg-white/5 hover:bg-white/10 disabled:opacity-20 text-white/60 hover:text-white font-medium py-3 rounded-2xl transition-colors text-sm"
               >
                 랜덤 매칭
               </button>
             </div>
           )}
 
-          {mode === 'create' && (
-            <div className="space-y-2.5 pt-1">
-              <button
-                onClick={handleCreate}
-                className="w-full bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold py-3 rounded-xl transition-colors"
-              >
-                방 생성
-              </button>
-              <button
-                onClick={() => setMode('home')}
-                className="w-full text-slate-400 hover:text-white text-sm py-2 transition-colors"
-              >
-                ← 돌아가기
-              </button>
-            </div>
-          )}
-
           {mode === 'join' && (
-            <div className="space-y-2.5 pt-1">
+            <div className="space-y-2 pt-1">
               <input
                 type="text"
                 value={roomId}
                 onChange={e => setRoomId(e.target.value.toUpperCase())}
-                placeholder="방 코드 입력 (예: AB1C23)"
+                onKeyDown={e => e.key === 'Enter' && handleJoin()}
+                placeholder="방 코드 (예: AB1C23)"
                 maxLength={6}
-                className="w-full bg-slate-700 text-white rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-amber-400 placeholder:text-slate-500 font-mono tracking-widest"
+                className="w-full bg-white/5 border border-white/10 text-white rounded-2xl px-4 py-3.5 outline-none focus:border-amber-400/60 placeholder:text-white/20 font-mono tracking-widest transition-colors"
               />
               <button
                 onClick={handleJoin}
-                disabled={!canProceed || !roomId.trim()}
-                className="w-full bg-amber-400 hover:bg-amber-300 disabled:opacity-40 text-slate-900 font-bold py-3 rounded-xl transition-colors"
+                disabled={!ready || !roomId.trim()}
+                className="w-full bg-amber-400 hover:bg-amber-300 disabled:opacity-20 text-slate-900 font-bold py-3.5 rounded-2xl transition-colors"
               >
                 입장하기
               </button>
               <button
                 onClick={() => setMode('home')}
-                className="w-full text-slate-400 hover:text-white text-sm py-2 transition-colors"
+                className="w-full text-white/30 hover:text-white/60 text-sm py-2 transition-colors"
               >
                 ← 돌아가기
               </button>

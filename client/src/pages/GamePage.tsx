@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { clsx } from 'clsx';
 import type { GameRoom, Tile, Player } from '../types';
 import { TileCard } from '../components/TileCard';
 
@@ -13,144 +14,245 @@ interface Props {
   lastGuessResult: { correct: boolean; tile: Tile } | null;
 }
 
-export function GamePage({ room, myId, drawnTile, hasDrawnThisTurn, onDrawTile, onGuessTile, onSkipGuess, lastGuessResult }: Props) {
-  const [selectedTarget, setSelectedTarget] = useState<{ playerId: string; tileId: string } | null>(null);
+interface SelectedTarget {
+  playerId: string;
+  tileId: string;
+}
+
+function TurnBanner({ isMyTurn, playerName }: { isMyTurn: boolean; playerName: string }) {
+  return (
+    <div className={clsx(
+      'text-center py-2.5 rounded-xl text-sm font-bold tracking-wide',
+      isMyTurn ? 'bg-amber-400 text-slate-900' : 'bg-white/6 text-white/50 border border-white/8'
+    )}>
+      {isMyTurn ? '내 차례' : `${playerName}의 차례`}
+    </div>
+  );
+}
+
+function GuessResultToast({ result }: { result: { correct: boolean; tile: Tile } }) {
+  return (
+    <div className={clsx(
+      'text-center py-2.5 rounded-xl text-sm font-bold',
+      result.correct ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'
+    )}>
+      {result.correct ? '정답! 타일이 공개됐습니다.' : '틀렸습니다. 턴이 넘어갑니다.'}
+    </div>
+  );
+}
+
+function OpponentArea({
+  opponent,
+  isMyTurn,
+  hasDrawn,
+  selectedTileId,
+  onTileClick,
+}: {
+  opponent: Player;
+  isMyTurn: boolean;
+  hasDrawn: boolean;
+  selectedTileId: string | null;
+  onTileClick: (tileId: string) => void;
+}) {
+  return (
+    <div className="bg-white/4 border border-white/8 rounded-2xl p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-white/50 text-xs font-bold">
+          {opponent.nickname[0].toUpperCase()}
+        </div>
+        <span className="text-white/50 text-xs font-medium">{opponent.nickname}</span>
+        <span className="text-white/20 text-xs ml-auto">{opponent.tiles.length}장</span>
+      </div>
+      <div className="flex gap-2 flex-wrap">
+        {opponent.tiles.map((tile: Tile) => (
+          <TileCard
+            key={tile.id}
+            tile={tile}
+            variant={tile.isRevealed ? 'face-up' : 'face-down'}
+            size="sm"
+            selected={selectedTileId === tile.id}
+            onClick={isMyTurn && hasDrawn && !tile.isRevealed ? () => onTileClick(tile.id) : undefined}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function GuessPanel({
+  onGuess,
+  onCancel,
+}: {
+  onGuess: (num: number | null, isJoker: boolean) => void;
+  onCancel: () => void;
+}) {
   const [guessNumber, setGuessNumber] = useState<number | null>(null);
-  const [isJokerGuess, setIsJokerGuess] = useState(false);
+  const [isJoker, setIsJoker] = useState(false);
+
+  const canGuess = guessNumber !== null || isJoker;
+
+  return (
+    <div className="bg-white/4 border border-white/8 rounded-2xl p-4 space-y-3">
+      <p className="text-white/40 text-xs uppercase tracking-widest">숫자 선택</p>
+      <div className="grid grid-cols-7 gap-1.5">
+        {Array.from({ length: 12 }, (_, i) => (
+          <button
+            key={i}
+            onClick={() => { setGuessNumber(i); setIsJoker(false); }}
+            className={clsx(
+              'h-9 rounded-lg font-bold text-sm transition-colors',
+              guessNumber === i && !isJoker
+                ? 'bg-amber-400 text-slate-900'
+                : 'bg-white/8 hover:bg-white/15 text-white'
+            )}
+          >
+            {i}
+          </button>
+        ))}
+        <button
+          onClick={() => { setIsJoker(true); setGuessNumber(null); }}
+          className={clsx(
+            'h-9 rounded-lg font-bold text-sm transition-colors',
+            isJoker ? 'bg-purple-500 text-white' : 'bg-white/8 hover:bg-white/15 text-white'
+          )}
+        >
+          ★
+        </button>
+      </div>
+      <div className="flex gap-2">
+        <button
+          onClick={() => onGuess(guessNumber, isJoker)}
+          disabled={!canGuess}
+          className="flex-1 bg-amber-400 hover:bg-amber-300 disabled:opacity-20 text-slate-900 font-bold py-2.5 rounded-xl transition-colors"
+        >
+          추리하기
+        </button>
+        <button
+          onClick={onCancel}
+          className="bg-white/8 hover:bg-white/15 text-white/60 font-medium py-2.5 px-4 rounded-xl transition-colors"
+        >
+          취소
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function MyHand({
+  tiles,
+  drawnTile,
+  isMyTurn,
+  hasDrawn,
+  deckCount,
+  onDrawTile,
+  onSkipGuess,
+}: {
+  tiles: Tile[];
+  drawnTile: Tile | null;
+  isMyTurn: boolean;
+  hasDrawn: boolean;
+  deckCount: number;
+  onDrawTile: () => void;
+  onSkipGuess: () => void;
+}) {
+  return (
+    <div className="bg-white/4 border border-white/8 rounded-2xl p-4">
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-white/30 text-xs uppercase tracking-widest">내 타일</span>
+        <span className="text-white/20 text-xs">덱 {deckCount}장</span>
+      </div>
+      <div className="flex gap-2 flex-wrap mb-4">
+        {tiles.map((tile: Tile) => (
+          <TileCard key={tile.id} tile={tile} variant="face-up" />
+        ))}
+        {drawnTile && (
+          <>
+            <div className="w-px bg-white/10 self-stretch mx-1" />
+            <TileCard tile={drawnTile} variant="face-up" />
+          </>
+        )}
+      </div>
+
+      {isMyTurn && (
+        <div className="flex gap-2">
+          {!hasDrawn ? (
+            <button
+              onClick={onDrawTile}
+              disabled={deckCount === 0}
+              className="flex-1 bg-amber-400 hover:bg-amber-300 disabled:opacity-20 text-slate-900 font-bold py-3 rounded-xl transition-colors"
+            >
+              타일 뽑기
+            </button>
+          ) : (
+            <>
+              <p className="text-white/30 text-xs self-center flex-1">타일을 뽑았습니다. 상대 타일을 눌러 추리하거나</p>
+              <button
+                onClick={onSkipGuess}
+                className="bg-white/8 hover:bg-white/15 text-white/60 font-medium py-2.5 px-4 rounded-xl text-sm transition-colors whitespace-nowrap"
+              >
+                그냥 추가
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function GamePage({ room, myId, drawnTile, hasDrawnThisTurn, onDrawTile, onGuessTile, onSkipGuess, lastGuessResult }: Props) {
+  const [selectedTarget, setSelectedTarget] = useState<SelectedTarget | null>(null);
 
   const me = room.players.find(p => p.id === myId)!;
   const isMyTurn = room.players[room.currentTurnIndex]?.id === myId;
   const currentPlayer = room.players[room.currentTurnIndex];
   const opponents = room.players.filter(p => p.id !== myId);
-  const hasDrawn = hasDrawnThisTurn;
 
   const handleTileClick = (playerId: string, tileId: string) => {
-    if (!isMyTurn || !hasDrawn) return;
     setSelectedTarget({ playerId, tileId });
-    setGuessNumber(null);
-    setIsJokerGuess(false);
   };
 
-  const handleGuess = () => {
+  const handleGuess = (num: number | null, isJoker: boolean) => {
     if (!selectedTarget) return;
-    onGuessTile(selectedTarget.playerId, selectedTarget.tileId, isJokerGuess ? null : guessNumber);
+    onGuessTile(selectedTarget.playerId, selectedTarget.tileId, isJoker ? null : num);
     setSelectedTarget(null);
-    setGuessNumber(null);
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white flex flex-col p-4 gap-4">
-      {/* 턴 표시 */}
-      <div className={`text-center py-2 rounded-xl text-sm font-bold ${isMyTurn ? 'bg-amber-400 text-slate-900' : 'bg-slate-700 text-slate-300'}`}>
-        {isMyTurn ? '내 차례!' : `${currentPlayer?.nickname}의 차례`}
-      </div>
+    <div className="min-h-screen bg-[#0d1117] text-white flex flex-col p-4 gap-3 max-w-lg mx-auto">
+      <TurnBanner isMyTurn={isMyTurn} playerName={currentPlayer?.nickname ?? ''} />
 
-      {/* 추리 결과 토스트 */}
-      {lastGuessResult && (
-        <div className={`text-center py-2 rounded-xl text-sm font-bold ${lastGuessResult.correct ? 'bg-green-500' : 'bg-red-500'}`}>
-          {lastGuessResult.correct ? '정답! 타일이 공개되었습니다.' : '틀렸습니다. 턴이 넘어갑니다.'}
-        </div>
-      )}
+      {lastGuessResult && <GuessResultToast result={lastGuessResult} />}
 
-      {/* 상대방 타일들 */}
-      <div className="space-y-3">
+      <div className="space-y-2 flex-1">
         {opponents.map((opponent: Player) => (
-          <div key={opponent.id} className="bg-slate-800 rounded-xl p-4">
-            <p className="text-slate-400 text-xs mb-2 uppercase tracking-widest">{opponent.nickname}</p>
-            <div className="flex gap-2 flex-wrap">
-              {opponent.tiles.map((tile: Tile) => (
-                <TileCard
-                  key={tile.id}
-                  tile={tile}
-                  faceDown={!tile.isRevealed}
-                  selected={selectedTarget?.tileId === tile.id}
-                  onClick={isMyTurn && hasDrawn && !tile.isRevealed ? () => handleTileClick(opponent.id, tile.id) : undefined}
-                  small
-                />
-              ))}
-            </div>
-          </div>
+          <OpponentArea
+            key={opponent.id}
+            opponent={opponent}
+            isMyTurn={isMyTurn}
+            hasDrawn={hasDrawnThisTurn}
+            selectedTileId={selectedTarget?.playerId === opponent.id ? selectedTarget.tileId : null}
+            onTileClick={(tileId) => handleTileClick(opponent.id, tileId)}
+          />
         ))}
       </div>
 
-      {/* 추리 패널 */}
       {selectedTarget && (
-        <div className="bg-slate-700 rounded-xl p-4 space-y-3">
-          <p className="text-sm text-slate-300">숫자를 골라 추리하세요</p>
-          <div className="flex flex-wrap gap-2">
-            {Array.from({ length: 12 }, (_, i) => (
-              <button
-                key={i}
-                onClick={() => { setGuessNumber(i); setIsJokerGuess(false); }}
-                className={`w-9 h-9 rounded-lg font-bold text-sm transition-colors ${guessNumber === i && !isJokerGuess ? 'bg-amber-400 text-slate-900' : 'bg-slate-600 hover:bg-slate-500'}`}
-              >
-                {i}
-              </button>
-            ))}
-            <button
-              onClick={() => { setIsJokerGuess(true); setGuessNumber(null); }}
-              className={`w-9 h-9 rounded-lg font-bold text-sm transition-colors ${isJokerGuess ? 'bg-purple-500' : 'bg-slate-600 hover:bg-slate-500'}`}
-            >
-              ★
-            </button>
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={handleGuess}
-              disabled={guessNumber === null && !isJokerGuess}
-              className="flex-1 bg-amber-400 hover:bg-amber-300 disabled:opacity-40 text-slate-900 font-bold py-2 rounded-lg transition-colors"
-            >
-              추리하기
-            </button>
-            <button
-              onClick={() => setSelectedTarget(null)}
-              className="bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded-lg transition-colors"
-            >
-              취소
-            </button>
-          </div>
-        </div>
+        <GuessPanel
+          onGuess={handleGuess}
+          onCancel={() => setSelectedTarget(null)}
+        />
       )}
 
-      {/* 내 타일 + 뽑은 타일 */}
-      <div className="mt-auto bg-slate-800 rounded-xl p-4">
-        <p className="text-slate-400 text-xs mb-2 uppercase tracking-widest">내 타일</p>
-        <div className="flex gap-2 flex-wrap mb-3">
-          {me?.tiles.map((tile: Tile) => (
-            <TileCard key={tile.id} tile={tile} faceDown={false} />
-          ))}
-          {drawnTile && (
-            <div className="flex items-center gap-1">
-              <span className="text-slate-500 text-xs">→</span>
-              <TileCard tile={drawnTile} faceDown={false} />
-            </div>
-          )}
-        </div>
-
-        {isMyTurn && (
-          <div className="flex gap-2">
-            {!hasDrawn ? (
-              <button
-                onClick={onDrawTile}
-                disabled={room.deck.length === 0}
-                className="flex-1 bg-amber-400 hover:bg-amber-300 disabled:opacity-40 text-slate-900 font-bold py-2.5 rounded-lg transition-colors"
-              >
-                타일 뽑기 (덱 {room.deck.length}장)
-              </button>
-            ) : (
-              <>
-                <p className="text-slate-400 text-xs self-center">타일을 뽑았습니다. 상대 타일을 클릭해 추리하거나</p>
-                <button
-                  onClick={onSkipGuess}
-                  className="bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-3 rounded-lg text-sm transition-colors whitespace-nowrap"
-                >
-                  그냥 패에 추가
-                </button>
-              </>
-            )}
-          </div>
-        )}
-      </div>
+      <MyHand
+        tiles={me?.tiles ?? []}
+        drawnTile={drawnTile}
+        isMyTurn={isMyTurn}
+        hasDrawn={hasDrawnThisTurn}
+        deckCount={room.deck.length}
+        onDrawTile={onDrawTile}
+        onSkipGuess={onSkipGuess}
+      />
     </div>
   );
 }
