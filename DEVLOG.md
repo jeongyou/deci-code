@@ -20,6 +20,10 @@
 - GitHub 레포 생성: https://github.com/jeongyou/davinci-code
 - 스킬 설치: react-best-practices, composition-patterns, deploy-to-vercel
 
+### 테스트 자동화
+- vitest 설치, gameLogic.ts 유닛 테스트 16개 추가 (전 함수 커버)
+- `cd server && pnpm test` 로 실행
+
 ### 다음 작업
 - [ ] 배포 (Vercel + Render)
 - [ ] 코드 리팩토링 (react-best-practices, composition-patterns 적용)
