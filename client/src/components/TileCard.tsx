@@ -1,52 +1,142 @@
-import { clsx } from 'clsx';
+import { useState } from 'react';
 import type { Tile } from '../types';
 
-type TileSize = 'sm' | 'md';
-type TileVariant = 'face-up' | 'face-down';
+type TileSize = 'xs' | 'sm' | 'md' | 'lg';
 
 interface Props {
   tile: Tile;
-  variant?: TileVariant;
-  size?: TileSize;
+  faceDown?: boolean;
+  colorVisible?: boolean;
   selected?: boolean;
   onClick?: () => void;
+  size?: TileSize;
+  anim?: 'appear' | 'flip' | 'shake';
+  isNew?: boolean;
 }
 
-export function TileCard({ tile, variant = 'face-up', size = 'md', selected = false, onClick }: Props) {
-  const isFaceDown = variant === 'face-down';
-  const isBlack = tile.color === 'black';
-  const interactive = !!onClick;
+const SIZES: Record<TileSize, { w: number; h: number; fs: number }> = {
+  xs: { w: 32, h: 42, fs: 14 },
+  sm: { w: 40, h: 52, fs: 18 },
+  md: { w: 50, h: 64, fs: 24 },
+  lg: { w: 58, h: 76, fs: 30 },
+};
+
+export function TileCard({ tile, faceDown = false, colorVisible = false, selected = false, onClick, size = 'md', anim, isNew = false }: Props) {
+  const [hovered, setHovered] = useState(false);
+  const { w, h, fs } = SIZES[size];
+
+  const whiteFace = {
+    background: '#f0ebe0',
+    border: selected ? '1.5px solid #c8a84b' : '1.5px solid #c8c0b0',
+    boxShadow: selected
+      ? '0 0 0 1px #c8a84b,0 4px 16px rgba(0,0,0,.4)'
+      : '0 2px 6px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.6)',
+  };
+  const blackFace = {
+    background: '#1e1e1e',
+    border: selected ? '1.5px solid #c8a84b' : '1.5px solid #3a3a3a',
+    boxShadow: selected
+      ? '0 0 0 1px #c8a84b,0 4px 16px rgba(0,0,0,.6)'
+      : '0 2px 6px rgba(0,0,0,.5)',
+  };
+  const whiteBack = {
+    background: '#bfbab0',
+    border: selected ? '1.5px solid #c8a84b' : '1.5px solid #a09890',
+    boxShadow: selected ? '0 0 0 1px #c8a84b,0 4px 12px rgba(0,0,0,.4)' : '0 2px 5px rgba(0,0,0,.25)',
+  };
+  const blackBack = {
+    background: '#161618',
+    border: selected ? '1.5px solid #c8a84b' : '1.5px solid #2e2e2e',
+    boxShadow: selected ? '0 0 0 1px #c8a84b,0 4px 12px rgba(0,0,0,.6)' : '0 2px 5px rgba(0,0,0,.5)',
+  };
+  const unkBack = {
+    background: '#1b2536',
+    border: selected ? '1.5px solid #c8a84b' : '1.5px solid #2a3a54',
+    boxShadow: selected ? '0 0 0 1px #c8a84b,0 4px 14px rgba(0,0,0,.5)' : '0 2px 8px rgba(0,0,0,.3)',
+  };
+
+  let faceStyle = !faceDown
+    ? tile.color === 'white' ? whiteFace : blackFace
+    : colorVisible
+      ? tile.color === 'white' ? whiteBack : blackBack
+      : unkBack;
+
+  const animStyle: React.CSSProperties = anim === 'appear'
+    ? { animation: 'tile-appear .3s ease' }
+    : anim === 'flip'
+      ? { animation: 'tile-flip .35s ease' }
+      : anim === 'shake'
+        ? { animation: 'shake .3s ease' }
+        : {};
+
+  const selAnim: React.CSSProperties = selected ? { animation: 'gold-pulse 1.6s ease infinite' } : {};
+  const lift: React.CSSProperties = hovered && onClick && !selected ? { transform: 'translateY(-3px)' } : {};
 
   return (
-    <button
+    <div
       onClick={onClick}
-      disabled={!interactive}
-      className={clsx(
-        'relative rounded-xl font-black flex items-center justify-center transition-all duration-150 select-none',
-        size === 'md' ? 'w-14 h-20 text-2xl' : 'w-10 h-14 text-lg',
-        isFaceDown && 'bg-slate-700 border-2 border-slate-600',
-        !isFaceDown && isBlack && 'bg-[#1a1a2e] text-white border-2 border-slate-700 shadow-lg shadow-black/40',
-        !isFaceDown && !isBlack && 'bg-[#fdf6e3] text-slate-900 border-2 border-amber-200 shadow-lg shadow-black/20',
-        selected && 'ring-4 ring-amber-400 scale-110 z-10',
-        interactive && !selected && 'hover:scale-105 hover:ring-2 hover:ring-amber-400/50 cursor-pointer',
-        interactive && 'active:scale-95',
-        !interactive && 'cursor-default',
-        tile.isRevealed && !isFaceDown && 'opacity-60',
-      )}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        width: w, height: h, borderRadius: 4,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        cursor: onClick ? 'pointer' : 'default',
+        flexShrink: 0, userSelect: 'none', position: 'relative',
+        transition: 'transform .12s ease, box-shadow .12s ease',
+        ...faceStyle, ...lift, ...selAnim, ...animStyle,
+      }}
     >
-      {isFaceDown ? (
-        <span className="text-slate-500 text-xl">?</span>
-      ) : tile.isJoker ? (
-        <span className={clsx('text-2xl', isBlack ? 'text-amber-400' : 'text-purple-500')}>★</span>
+      {!faceDown ? (
+        <span style={{
+          fontFamily: 'Playfair Display, Georgia, serif',
+          fontSize: fs, fontWeight: 900,
+          color: tile.color === 'white' ? '#111' : '#f0f0f0',
+          lineHeight: 1,
+          letterSpacing: (tile.number !== null && tile.number >= 10) ? '-2px' : '-1px',
+        }}>
+          {tile.isJoker ? '–' : tile.number}
+        </span>
+      ) : colorVisible ? (
+        <span style={{
+          fontFamily: 'Playfair Display',
+          fontSize: fs * .7, fontWeight: 700,
+          color: tile.color === 'white' ? 'rgba(60,50,40,.3)' : 'rgba(255,255,255,.1)',
+          lineHeight: 1,
+        }}>?</span>
       ) : (
-        <span>{tile.number}</span>
+        <svg width={w - 10} height={h - 10} viewBox="0 0 30 42">
+          <rect x="1" y="1" width="28" height="40" rx="2" fill="none" stroke="#2a3a54" strokeWidth="1"/>
+          <line x1="1" y1="1" x2="29" y2="41" stroke="#1e2d42" strokeWidth=".7"/>
+          <line x1="29" y1="1" x2="1" y2="41" stroke="#1e2d42" strokeWidth=".7"/>
+        </svg>
       )}
 
-      {tile.isRevealed && !isFaceDown && (
-        <span className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/20 text-xs text-white font-medium">
-          공개
-        </span>
+      {/* color hint strip for face-down colorVisible */}
+      {faceDown && colorVisible && (
+        <div style={{
+          position: 'absolute', bottom: 3, left: '50%', transform: 'translateX(-50%)',
+          width: w - 10, height: 3, borderRadius: 1.5,
+          background: tile.color === 'white' ? 'rgba(160,148,120,.4)' : 'rgba(255,255,255,.06)',
+        }}/>
       )}
-    </button>
+
+      {/* NEW badge */}
+      {isNew && (
+        <div style={{
+          position: 'absolute', top: -8, left: '50%', transform: 'translateX(-50%)',
+          background: '#c8a84b', color: '#000', fontSize: 8, fontWeight: 700,
+          padding: '1px 4px', borderRadius: 2, fontFamily: 'Inter', letterSpacing: .5, whiteSpace: 'nowrap',
+        }}>NEW</div>
+      )}
+
+      {/* revealed overlay */}
+      {tile.isRevealed && !faceDown && (
+        <div style={{
+          position: 'absolute', inset: 0, borderRadius: 4,
+          border: '1.5px solid rgba(200,60,60,.7)',
+          background: 'rgba(200,40,40,.1)', pointerEvents: 'none',
+        }}/>
+      )}
+    </div>
   );
 }
