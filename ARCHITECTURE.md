@@ -23,14 +23,15 @@ davinci-code/
 
 | 이벤트 | 인자 | 설명 |
 |---|---|---|
-| `join_room` | `roomId, nickname` | 방 코드로 입장 (없으면 생성) |
+| `join_room` | `roomId, nickname, turnDurationSec?` | 방 코드로 입장 (없으면 생성). 방 생성 시 30초/60초 추리 제한시간 설정 |
 | `join_random` | `nickname` | 랜덤 매칭 대기열 등록 |
 | `set_ready` | — | 준비 완료 선언 |
 | `draw_tile` | — | 덱에서 타일 뽑기 |
 | `place_joker` | `position: number` | 조커 삽입 위치 선택 (insert 페이즈) |
-| `guess_tile` | `targetPlayerId, tileId, guessedColor, guessedNumber\|null` | 상대 타일 추리 (색상 + 숫자 모두 선언) |
-| `skip_guess` | — | 추리 패스 (뽑은 타일 내 패에 추가 후 턴 종료) |
+| `guess_tile` | `targetPlayerId, tileId, guessedColor, guessedNumber\|null` | 상대 타일 추리. 클라이언트는 선택한 타일 색상을 자동 적용하고 숫자/조커만 받음 |
+| `skip_guess` | — | 추리 패스 후 턴 종료 |
 | `reveal_own_tile` | `tileId` | 내 타일 직접 공개 (덱 비어있을 때 오답 패널티) |
+| `restart_game` | — | finished 상태의 같은 방을 waiting 상태로 초기화 |
 
 ### Server → Client
 
@@ -41,7 +42,7 @@ davinci-code/
 | `game_started` | 방 전체 | `room` | 모두 준비 → 게임 시작, 타일 배분 완료 |
 | `tile_drawn` | 개인 | `tile` | 뽑은 타일 (본인만 볼 수 있음) |
 | `must_place_joker` | 개인 | — | 조커 뽑음 → 배치 위치 선택 요청 |
-| `guess_result` | 방 전체 | `correct, tile` | 추리 결과 (정답/오답, 해당 타일) |
+| `guess_result` | 방 전체 | `correct, tile, guessedColor, guessedNumber, guesserNickname, targetNickname` | 추리 결과와 선언값. 오답 시 실제 정답 값은 숨김 |
 | `must_reveal_tile` | 개인 | — | 덱 비어있을 때 오답 → 내 타일 선택 요청 |
 | `game_over` | 방 전체 | `winnerId, winnerNickname` | 게임 종료 |
 | `waiting_for_match` | 개인 | — | 랜덤 매칭 대기 중 |
@@ -64,6 +65,7 @@ server/src/
 
 - `rooms: Map<string, GameRoom>` — 활성 방 전체
 - `waitingQueue: { socketId, nickname }[]` — 랜덤 매칭 대기열
+- `roomForPlayer(room, viewerId)` — 플레이어별로 방 상태를 마스킹한다. 비공개 조커는 상대에게 조커로 보이지 않는다.
 
 ### gameLogic.ts 주요 함수
 
@@ -75,12 +77,13 @@ server/src/
 | `drawTile(room)` | 덱 맨 위 타일 뽑기, drawnTile + drawnTileId 설정 |
 | `insertJokerAtPosition(room, playerId, position)` | 조커를 지정 위치에 삽입, phase='guess'로 전환 |
 | `guessPlayerTile(room, targetId, tileId, color, num)` | 추리 검증 (색상+숫자 모두 확인) |
-| `addDrawnTileToPlayer(room, playerId)` | 비조커 타일을 정렬 위치에 삽입 |
-| `revealDrawnTileAsPlaced(room, playerId)` | 이미 배치된 조커(drawnTileId)를 공개 |
+| `addDrawnTileToPlayer(room, playerId)` | 뽑은 숫자 타일을 즉시 정렬 위치에 삽입 |
+| `revealDrawnTileAsPlaced(room, playerId)` | 이번 턴에 패에 들어간 타일(drawnTileId)을 공개 |
 | `nextTurn(room)` | 탈락자 건너뛰며 다음 턴, phase='draw' 리셋 |
 | `checkWinner(room)` | 승자 판정 (비탈락자 1명) |
 | `isPlayerEliminated(player)` | 타일 모두 공개 여부 |
 | `revealOwnTile(room, playerId, tileId)` | 패널티 타일 공개 |
+| `resetRoomForReplay(room)` | 같은 플레이어로 방을 waiting 상태로 초기화 |
 | `sortTiles(tiles)` | 숫자 오름차순, 동점 시 흑 먼저 (조커는 맨 뒤) |
 | `findInsertIndex(tiles, newTile)` | 정렬 순서를 유지하는 삽입 인덱스 반환 |
 
@@ -136,8 +139,10 @@ App.tsx (전역 상태)
     ├── hasDrawnThisTurn: boolean      ← 턴 관리
     ├── mustPlaceJoker: boolean        ← must_place_joker에서 세팅
     ├── mustRevealTile: boolean        ← must_reveal_tile에서 세팅
-    ├── lastGuessResult: { correct, tile } | null
-    └── gameOver: { winnerId, winnerNickname } | null
+    ├── lastGuessResult: GuessResult | null
+    ├── gameOver: { winnerId, winnerNickname } | null
+    ├── room.turnDurationSec: 30 | 60
+    └── room.turnStartedAt: number | null
     │
     ▼
 페이지 컴포넌트에 props 전달
@@ -204,13 +209,14 @@ draw ──draw_tile──► insert (조커)  ──place_joker──► guess
 클라이언트(내 차례)          서버
       │
       ├─ draw_tile ──────────► tile_drawn (나에게만)
+      │                        뽑은 타일 즉시 내 패에 정렬 삽입
       │                        room_updated (전체, phase=guess)
       │
       ├─ guess_tile ─────────► guess_result (전체)
       │    정답                room_updated (전체)
       │    └─ 계속 추리 가능
-      │    오답 + 뽑은타일 있음
-      │    └─ 타일 공개 + room_updated + 턴 종료
+      │    오답 + 이번 턴에 뽑은 타일 있음
+      │    └─ 이미 내 패에 들어간 타일 공개 + room_updated + 턴 종료
       │    오답 + 덱 비어있음
       │    └─ must_reveal_tile (나에게만)
       │         │
@@ -227,6 +233,7 @@ draw ──draw_tile──► insert (조커)  ──place_joker──► guess
       ├─ draw_tile ──────────► tile_drawn (나에게만)
       │                        must_place_joker (나에게만)
       │                        room_updated (전체, phase=insert)
+      │                        상대 화면에는 조커 여부 대신 "타일 정리 중" 표시
       │
       ├─ place_joker ────────► room_updated (전체, 조커 배치됨, phase=guess)
       │
@@ -252,6 +259,13 @@ Tile = {
 - 조커 2장: `{ color: 'joker', number: null }`
 - 숫자 타일: 흑 0~11 (12장) + 백 0~11 (12장) = 24장
 - 총 26장
+- 상대에게 보내는 비공개 조커는 조커 정체가 드러나지 않도록 마스킹된다.
+
+```
+GameRoom 추가 상태:
+  turnDurationSec: 30 | 60
+  turnStartedAt: number | null
+```
 
 ---
 
