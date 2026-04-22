@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import type { GameRoom, Tile } from '../types';
+import type { GameRoom, Tile, TileColor } from '../types';
 import { Toasts } from '../components/Toasts';
 import type { Toast } from '../components/Toasts';
 import { GuessModal } from './game/GuessModal';
 import { PenaltyModal } from './game/PenaltyModal';
+import { JokerInsertModal } from './game/JokerInsertModal';
 import { TopSeat } from './game/TopSeat';
 import { SideSeat } from './game/SideSeat';
 import { MySeat } from './game/MySeat';
@@ -16,15 +17,17 @@ interface Props {
   myId: string;
   drawnTile: Tile | null;
   hasDrawnThisTurn: boolean;
+  mustPlaceJoker: boolean;
   mustRevealTile: boolean;
   onDrawTile: () => void;
-  onGuessTile: (targetPlayerId: string, tileId: string, guessedNumber: number | null) => void;
+  onPlaceJoker: (position: number) => void;
+  onGuessTile: (targetPlayerId: string, tileId: string, guessedColor: TileColor, guessedNumber: number | null) => void;
   onSkipGuess: () => void;
   onRevealOwnTile: (tileId: string) => void;
   lastGuessResult: { correct: boolean; tile: Tile } | null;
 }
 
-export function GamePage({ room, myId, drawnTile, hasDrawnThisTurn, mustRevealTile, onDrawTile, onGuessTile, onSkipGuess, onRevealOwnTile, lastGuessResult }: Props) {
+export function GamePage({ room, myId, drawnTile, hasDrawnThisTurn, mustPlaceJoker, mustRevealTile, onDrawTile, onPlaceJoker, onGuessTile, onSkipGuess, onRevealOwnTile, lastGuessResult }: Props) {
   const [showGuess, setShowGuess] = useState(false);
   const [selTarget, setSelTarget] = useState<SelTarget | null>(null);
   const [guessedCorrectly, setGuessedCorrectly] = useState(false);
@@ -42,11 +45,11 @@ export function GamePage({ room, myId, drawnTile, hasDrawnThisTurn, mustRevealTi
 
   const phase: Phase = !isMyTurn ? 'wait'
     : mustRevealTile ? 'penalty'
+    : mustPlaceJoker ? 'insert'
     : !hasDrawnThisTurn ? 'draw'
     : guessedCorrectly ? 'correct'
     : 'select';
 
-  // async 래핑 — effect 내 동기 setState 없이 호출 가능
   function addToast(msg: string, type: Toast['type'] = 'info', ms = 2600) {
     const id = Date.now();
     setTimeout(() => {
@@ -87,7 +90,7 @@ export function GamePage({ room, myId, drawnTile, hasDrawnThisTurn, mustRevealTi
     if (lastGuessResult) {
       setGuessedCorrectly(lastGuessResult.correct);
       const { tile } = lastGuessResult;
-      const label = `${tile.color === 'white' ? '백' : '흑'}${tile.isJoker ? '조커' : tile.number}`;
+      const label = tile.color === 'joker' ? '조커' : `${tile.color === 'white' ? '백' : '흑'}${tile.number}`;
       setLog(p => [lastGuessResult.correct ? `정답 적중 [${label}]` : '추리 실패', ...p.slice(0, 29)]);
     }
   }
@@ -96,12 +99,14 @@ export function GamePage({ room, myId, drawnTile, hasDrawnThisTurn, mustRevealTi
   useEffect(() => {
     if (!lastGuessResult) return;
     if (lastGuessResult.correct) {
-      addToast(`정답 — ${lastGuessResult.tile.isJoker ? '조커' : lastGuessResult.tile.number}`, 'success', 3200);
-      addAnim(lastGuessResult.tile.id, 'flip');
+      const { tile } = lastGuessResult;
+      const label = tile.color === 'joker' ? '조커' : tile.number;
+      addToast(`정답 — ${label}`, 'success', 3200);
+      addAnim(tile.id, 'flip');
     } else {
       addToast('틀렸습니다', 'error', 3000);
     }
-  }, [lastGuessResult]);
+  }, [lastGuessResult]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const canInteract = phase === 'select' || phase === 'correct';
 
@@ -110,10 +115,10 @@ export function GamePage({ room, myId, drawnTile, hasDrawnThisTurn, mustRevealTi
     setShowGuess(true);
   }
 
-  function handleGuess(num: number | null) {
+  function handleGuess(color: TileColor, num: number | null) {
     if (!selTarget) return;
     setShowGuess(false);
-    onGuessTile(selTarget.playerId, selTarget.tileId, num);
+    onGuessTile(selTarget.playerId, selTarget.tileId, color, num);
     setSelTarget(null);
   }
 
@@ -122,6 +127,7 @@ export function GamePage({ room, myId, drawnTile, hasDrawnThisTurn, mustRevealTi
 
       {showGuess && <GuessModal onGuess={handleGuess} onCancel={() => { setShowGuess(false); setSelTarget(null); }}/>}
       {mustRevealTile && me && <PenaltyModal myTiles={me.tiles} onReveal={onRevealOwnTile}/>}
+      {mustPlaceJoker && me && <JokerInsertModal myTiles={me.tiles} onPlace={onPlaceJoker}/>}
       <Toasts list={toasts}/>
 
       {/* NAV */}

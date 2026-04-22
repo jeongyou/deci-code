@@ -10,11 +10,11 @@ interface Props {
 type Mode = 'create' | 'join' | 'random' | null;
 
 const DECO_TILES: Tile[] = [
-  { id: 'd0', color: 'white', number: 3,  isJoker: false, isRevealed: false },
-  { id: 'd1', color: 'black', number: 7,  isJoker: false, isRevealed: false },
-  { id: 'd2', color: 'white', number: 1,  isJoker: false, isRevealed: false },
-  { id: 'd3', color: 'black', number: 11, isJoker: false, isRevealed: false },
-  { id: 'd4', color: 'white', number: 0,  isJoker: false, isRevealed: false },
+  { id: 'd0', color: 'white', number: 3,  isRevealed: false },
+  { id: 'd1', color: 'black', number: 7,  isRevealed: false },
+  { id: 'd2', color: 'white', number: 1,  isRevealed: false },
+  { id: 'd3', color: 'black', number: 11, isRevealed: false },
+  { id: 'd4', color: 'white', number: 0,  isRevealed: false },
 ];
 const DECO_POS = [
   { top: '15%', left: '8%',  rotate: -15, delay: 0 },

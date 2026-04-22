@@ -42,6 +42,9 @@ export function CenterZone({ phase, deckLength, selTarget, hasDrawnThisTurn, cur
               <button onClick={onDrawTile} style={{ background: '#c8a84b', color: '#0a0a0c', border: 'none', borderRadius: 3, padding: '8px 18px', fontFamily: 'Inter', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>타일 뽑기</button>
             </div>
           )}
+          {phase === 'insert' && (
+            <p style={{ fontFamily: 'Inter', fontSize: 10, color: '#b080ff', animation: 'blink 1.5s ease infinite' }}>조커 배치 위치를 선택하세요</p>
+          )}
           {phase === 'select' && <p style={{ fontFamily: 'Inter', fontSize: 10, color: '#c8a84b', animation: 'blink 2s ease infinite' }}>타일을 선택하세요</p>}
           {phase === 'correct' && (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>

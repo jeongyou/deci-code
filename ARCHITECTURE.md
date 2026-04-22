@@ -8,6 +8,7 @@
 
 ```
 davinci-code/
+├── check.sh         개발 하네스 (test → build server → build client)
 ├── client/          Vite + React + TypeScript (포트 5173)
 └── server/          Node.js + Express + Socket.io (포트 3001)
 ```
@@ -26,7 +27,8 @@ davinci-code/
 | `join_random` | `nickname` | 랜덤 매칭 대기열 등록 |
 | `set_ready` | — | 준비 완료 선언 |
 | `draw_tile` | — | 덱에서 타일 뽑기 |
-| `guess_tile` | `targetPlayerId, tileId, number\|null` | 상대 타일 추리 |
+| `place_joker` | `position: number` | 조커 삽입 위치 선택 (insert 페이즈) |
+| `guess_tile` | `targetPlayerId, tileId, guessedColor, guessedNumber\|null` | 상대 타일 추리 (색상 + 숫자 모두 선언) |
 | `skip_guess` | — | 추리 패스 (뽑은 타일 내 패에 추가 후 턴 종료) |
 | `reveal_own_tile` | `tileId` | 내 타일 직접 공개 (덱 비어있을 때 오답 패널티) |
 
@@ -38,6 +40,7 @@ davinci-code/
 | `room_updated` | 방 전체 | `room` | 방 상태 변경 (준비, 턴 변경, 타일 공개 등) |
 | `game_started` | 방 전체 | `room` | 모두 준비 → 게임 시작, 타일 배분 완료 |
 | `tile_drawn` | 개인 | `tile` | 뽑은 타일 (본인만 볼 수 있음) |
+| `must_place_joker` | 개인 | — | 조커 뽑음 → 배치 위치 선택 요청 |
 | `guess_result` | 방 전체 | `correct, tile` | 추리 결과 (정답/오답, 해당 타일) |
 | `must_reveal_tile` | 개인 | — | 덱 비어있을 때 오답 → 내 타일 선택 요청 |
 | `game_over` | 방 전체 | `winnerId, winnerNickname` | 게임 종료 |
@@ -50,9 +53,11 @@ davinci-code/
 
 ```
 server/src/
-├── index.ts        Socket.io 이벤트 핸들러, 방 관리 (rooms Map, waitingQueue)
-├── gameLogic.ts    순수 게임 로직 함수 (상태 변환, 검증)
-└── types.ts        GameRoom, Player, Tile, 소켓 이벤트 타입 정의
+├── index.ts                  Socket.io 이벤트 핸들러, 방 관리 (rooms Map, waitingQueue)
+├── gameLogic.ts              순수 게임 로직 함수 (상태 변환, 검증)
+├── types.ts                  GameRoom, Player, Tile, 소켓 이벤트 타입 정의
+└── __tests__/
+    └── gameLogic.test.ts     게임 로직 단위 테스트 (vitest, 41개)
 ```
 
 ### 서버 상태
@@ -66,15 +71,18 @@ server/src/
 |---|---|
 | `createRoom(id)` | 빈 방 생성 |
 | `addPlayer(room, id, nickname)` | 플레이어 추가 |
-| `dealInitialTiles(room)` | 게임 시작 시 타일 배분 (2인→4장, 3인→3장, 4인→3장) |
-| `drawTile(room)` | 덱 맨 위 타일 뽑기 |
-| `guessPlayerTile(room, targetId, tileId, num)` | 추리 검증 + 타일 공개 처리 |
-| `addDrawnTileToPlayer(room, playerId)` | 뽑은 타일 내 패에 정렬 삽입 |
-| `nextTurn(room)` | 탈락자 건너뛰며 다음 턴 |
-| `checkWinner(room)` | 승자 판정 (본인 제외 모두 탈락) |
+| `dealInitialTiles(room)` | 게임 시작 시 타일 배분 (2~3인→4장, 4인→3장) |
+| `drawTile(room)` | 덱 맨 위 타일 뽑기, drawnTile + drawnTileId 설정 |
+| `insertJokerAtPosition(room, playerId, position)` | 조커를 지정 위치에 삽입, phase='guess'로 전환 |
+| `guessPlayerTile(room, targetId, tileId, color, num)` | 추리 검증 (색상+숫자 모두 확인) |
+| `addDrawnTileToPlayer(room, playerId)` | 비조커 타일을 정렬 위치에 삽입 |
+| `revealDrawnTileAsPlaced(room, playerId)` | 이미 배치된 조커(drawnTileId)를 공개 |
+| `nextTurn(room)` | 탈락자 건너뛰며 다음 턴, phase='draw' 리셋 |
+| `checkWinner(room)` | 승자 판정 (비탈락자 1명) |
 | `isPlayerEliminated(player)` | 타일 모두 공개 여부 |
 | `revealOwnTile(room, playerId, tileId)` | 패널티 타일 공개 |
-| `sortTiles(tiles)` | 숫자 오름차순, 동점 시 흑 먼저 정렬 |
+| `sortTiles(tiles)` | 숫자 오름차순, 동점 시 흑 먼저 (조커는 맨 뒤) |
+| `findInsertIndex(tiles, newTile)` | 정렬 순서를 유지하는 삽입 인덱스 반환 |
 
 ---
 
@@ -87,9 +95,9 @@ client/src/
 ├── hooks/
 │   └── useSocket.ts        Socket.io 연결 + 이벤트 바인딩 훅
 ├── types/
-│   └── index.ts            GameRoom, Player, Tile 타입
+│   └── index.ts            GameRoom, Player, Tile, TileColor 타입
 ├── components/             재사용 가능한 UI 컴포넌트
-│   ├── TileCard.tsx        타일 카드 (앞면/뒷면, 크기, 애니메이션)
+│   ├── TileCard.tsx        타일 카드 (앞면/뒷면, 크기, 애니메이션, 조커 스타일)
 │   ├── TileRow.tsx         타일 목록 + OrderGap 조합
 │   ├── OrderGap.tsx        타일 사이 ≤ / < / = 표시
 │   ├── Avatar.tsx          플레이어 이니셜 아바타
@@ -103,9 +111,10 @@ client/src/
         ├── TopSeat.tsx     상단 상대방 시트 (가로 타일 배열)
         ├── SideSeat.tsx    좌/우 상대방 시트 (세로 타일 배열)
         ├── MySeat.tsx      하단 내 패
-        ├── CenterZone.tsx  덱 + 액션 버튼 (뽑기/추리/패스)
+        ├── CenterZone.tsx  덱 + 액션 버튼 (뽑기/조커배치/추리/패스)
         ├── GameSidebar.tsx 우측 사이드바 (플레이어 목록, 페이즈, 로그)
-        ├── GuessModal.tsx  숫자 선택 모달
+        ├── GuessModal.tsx  색상+숫자 선택 모달 (2단계: 색상→숫자)
+        ├── JokerInsertModal.tsx 조커 배치 위치 선택 모달
         └── PenaltyModal.tsx 패널티 타일 선택 모달
 ```
 
@@ -123,9 +132,10 @@ App.tsx (전역 상태)
     ├── page: 'lobby' | 'waiting' | 'game' | 'finished'
     ├── room: GameRoom | null
     ├── myId: string  (myIdRef로 클로저 안정화)
-    ├── drawnTile: Tile | null       ← tile_drawn에서 세팅
-    ├── hasDrawnThisTurn: boolean    ← 턴 관리
-    ├── mustRevealTile: boolean      ← must_reveal_tile에서 세팅
+    ├── drawnTile: Tile | null         ← tile_drawn에서 세팅
+    ├── hasDrawnThisTurn: boolean      ← 턴 관리
+    ├── mustPlaceJoker: boolean        ← must_place_joker에서 세팅
+    ├── mustRevealTile: boolean        ← must_reveal_tile에서 세팅
     ├── lastGuessResult: { correct, tile } | null
     └── gameOver: { winnerId, winnerNickname } | null
     │
@@ -134,8 +144,9 @@ App.tsx (전역 상태)
     ├── LobbyPage    → onJoinRoom, onJoinRandom
     ├── WaitingRoom  → room, myId, onReady
     └── GamePage     → room, myId, drawnTile, hasDrawnThisTurn,
-                       mustRevealTile, lastGuessResult,
-                       onDrawTile, onGuessTile, onSkipGuess, onRevealOwnTile
+                       mustPlaceJoker, mustRevealTile, lastGuessResult,
+                       onDrawTile, onPlaceJoker, onGuessTile(color+num),
+                       onSkipGuess, onRevealOwnTile
 ```
 
 ---
@@ -145,15 +156,19 @@ App.tsx (전역 상태)
 `phase`는 서버 상태가 아닌 클라이언트에서 파생 계산한다.
 
 ```
-isMyTurn? ──No──► wait     (상대방 차례 대기)
+isMyTurn? ──No──► wait      (상대방 차례 대기)
     │
    Yes
     │
-mustRevealTile? ──Yes──► penalty  (덱 비어있을 때 오답 → 내 타일 선택)
+mustRevealTile? ──Yes──► penalty   (덱 비어있을 때 오답 → 내 타일 선택)
     │
    No
     │
-hasDrawnThisTurn? ──No──► draw    (타일 뽑기)
+mustPlaceJoker? ──Yes──► insert    (조커 뽑음 → 배치 위치 선택)
+    │
+   No
+    │
+hasDrawnThisTurn? ──No──► draw     (타일 뽑기)
     │
    Yes
     │
@@ -165,13 +180,31 @@ guessedCorrectly? ──Yes──► correct (정답 → 계속/종료 선택)
 
 ---
 
-## 게임 턴 시퀀스 (정상 흐름)
+## 서버 페이즈(GamePhase) 흐름
+
+서버 `room.phase`는 소켓 이벤트 처리 시 유효성 검증에 사용된다.
+
+```
+draw ──draw_tile──► insert (조커)  ──place_joker──► guess
+     │                                              │
+     └──────── guess (비조커) ───────────────────────┘
+                    │
+                    ├─ guess_tile (정답) → guess 유지 or 다음턴 draw
+                    ├─ guess_tile (오답) → 다음턴 draw
+                    └─ skip_guess       → 다음턴 draw
+```
+
+---
+
+## 게임 턴 시퀀스
+
+### 비조커 뽑기 + 추리
 
 ```
 클라이언트(내 차례)          서버
       │
       ├─ draw_tile ──────────► tile_drawn (나에게만)
-      │                        room_updated (전체)
+      │                        room_updated (전체, phase=guess)
       │
       ├─ guess_tile ─────────► guess_result (전체)
       │    정답                room_updated (전체)
@@ -186,6 +219,61 @@ guessedCorrectly? ──Yes──► correct (정답 → 계속/종료 선택)
       └─ skip_guess ─────────► room_updated (전체, 턴 종료)
 ```
 
+### 조커 뽑기
+
+```
+클라이언트(내 차례)          서버
+      │
+      ├─ draw_tile ──────────► tile_drawn (나에게만)
+      │                        must_place_joker (나에게만)
+      │                        room_updated (전체, phase=insert)
+      │
+      ├─ place_joker ────────► room_updated (전체, 조커 배치됨, phase=guess)
+      │
+      └─ (이후 비조커와 동일한 추리 흐름)
+           오답 시: 배치된 조커 공개 (drawnTileId 추적)
+```
+
+---
+
+## 타일 데이터 구조
+
+```
+TileColor = 'black' | 'white' | 'joker'
+
+Tile = {
+  id: string
+  color: TileColor
+  number: number | null   // joker는 null
+  isRevealed: boolean
+}
+```
+
+- 조커 2장: `{ color: 'joker', number: null }`
+- 숫자 타일: 흑 0~11 (12장) + 백 0~11 (12장) = 24장
+- 총 26장
+
+---
+
+## 초기 타일 배분 규칙
+
+| 인원 | 1인당 장수 | 덱 남은 장수 |
+|---|---|---|
+| 2인 | 4장 | 18장 |
+| 3인 | 4장 | 14장 |
+| 4인 | 3장 | 14장 |
+
+---
+
+## 개발 하네스 (check.sh)
+
+```bash
+./check.sh           # test → build (server + client) 전체 검증
+./check.sh --watch   # vitest watch 모드
+```
+
+단계: 서버 테스트(vitest) → 서버 빌드(tsc) → 클라이언트 빌드(tsc+vite)
+
 ---
 
 ## 디자인 시스템
@@ -199,6 +287,7 @@ guessedCorrectly? ──Yes──► correct (정답 → 계속/종료 선택)
 | 텍스트 밝음 | `#dde3ee` |
 | 성공 (초록) | `#6fcf97` |
 | 오류 (빨강) | `#eb5757` |
+| 조커 (보라) | `#b080ff` |
 | 경계선 | `#2a3a54` |
 | 제목 폰트 | Playfair Display |
 | 본문 폰트 | Inter |

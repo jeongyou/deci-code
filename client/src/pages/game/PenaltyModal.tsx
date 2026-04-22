@@ -24,7 +24,7 @@ export function PenaltyModal({ myTiles, onReveal }: Props) {
                 <TileCard tile={t} faceDown={false} size="md"/>
               </div>
               <span style={{ fontFamily: 'Inter', fontSize: 9, color: pick === t.id ? '#eb5757' : '#4e6080' }}>
-                {t.color === 'white' ? '백' : '흑'} {t.isJoker ? '조커' : t.number}
+                {t.color === 'joker' ? '조커' : `${t.color === 'white' ? '백' : '흑'} ${t.number}`}
               </span>
             </div>
           ))}

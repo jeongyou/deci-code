@@ -2,13 +2,12 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
-import { v4 as uuidv4 } from 'uuid';
 import {
   createRoom, addPlayer, dealInitialTiles, drawTile,
-  guessPlayerTile, addDrawnTileToPlayer, nextTurn,
-  checkWinner, isPlayerEliminated, revealOwnTile,
+  guessPlayerTile, addDrawnTileToPlayer, revealDrawnTileAsPlaced,
+  insertJokerAtPosition, nextTurn, checkWinner, revealOwnTile,
 } from './gameLogic';
-import { GameRoom } from './types';
+import type { GameRoom, TileColor } from './types';
 
 const app = express();
 app.use(cors());
@@ -95,23 +94,48 @@ io.on('connection', (socket) => {
     const room = findRoomByPlayer(socket.id);
     if (!room || room.status !== 'playing') return;
     if (room.players[room.currentTurnIndex].id !== socket.id) return;
-    if (room.drawnTile) return; // 이미 뽑음
+    if (room.drawnTile || room.phase !== 'draw') return;
 
     const tile = drawTile(room);
     if (!tile) {
-      socket.emit('error', '덱이 비어있습니다.');
+      // 덱 비어있음 → 뽑기 없이 바로 추리
+      room.phase = 'guess';
+      io.to(room.id).emit('room_updated', room);
       return;
     }
+
     socket.emit('tile_drawn', tile);
+
+    if (tile.color === 'joker') {
+      // 조커는 배치 단계로 이동 (플레이어가 위치 선택)
+      room.phase = 'insert';
+      socket.emit('must_place_joker');
+    } else {
+      room.phase = 'guess';
+    }
+
     io.to(room.id).emit('room_updated', room);
   });
 
-  socket.on('guess_tile', (targetPlayerId: string, tileId: string, guessedNumber: number | null) => {
+  socket.on('place_joker', (position: number) => {
     const room = findRoomByPlayer(socket.id);
     if (!room || room.status !== 'playing') return;
     if (room.players[room.currentTurnIndex].id !== socket.id) return;
+    if (room.phase !== 'insert') return;
 
-    const correct = guessPlayerTile(room, targetPlayerId, tileId, guessedNumber);
+    const ok = insertJokerAtPosition(room, socket.id, position);
+    if (!ok) return;
+
+    io.to(room.id).emit('room_updated', room);
+  });
+
+  socket.on('guess_tile', (targetPlayerId: string, tileId: string, guessedColor: TileColor, guessedNumber: number | null) => {
+    const room = findRoomByPlayer(socket.id);
+    if (!room || room.status !== 'playing') return;
+    if (room.players[room.currentTurnIndex].id !== socket.id) return;
+    if (room.phase !== 'guess') return;
+
+    const correct = guessPlayerTile(room, targetPlayerId, tileId, guessedColor, guessedNumber);
     const targetTile = room.players
       .find(p => p.id === targetPlayerId)?.tiles
       .find(t => t.id === tileId);
@@ -128,16 +152,19 @@ io.on('connection', (socket) => {
         io.to(room.id).emit('game_over', winner.id, winner.nickname);
         return;
       }
-      // 맞추면 계속 추리 가능 (뽑은 타일은 패에 추가)
-      if (room.drawnTile) {
-        addDrawnTileToPlayer(room, socket.id);
-      }
+      // 정답 → 뽑은 타일을 패에 추가 (조커는 이미 place_joker로 배치됨)
+      addDrawnTileToPlayer(room, socket.id);
       io.to(room.id).emit('room_updated', room);
     } else {
       if (room.drawnTile) {
-        // 뽑은 타일 공개 후 패에 추가하고 턴 넘김
+        // 뽑은 타일이 아직 패에 없음 (비조커) → 공개 후 삽입, 턴 종료
         room.drawnTile.isRevealed = true;
         addDrawnTileToPlayer(room, socket.id);
+        nextTurn(room);
+        io.to(room.id).emit('room_updated', room);
+      } else if (room.drawnTileId) {
+        // 조커가 이미 배치된 경우 → 해당 타일 공개, 턴 종료
+        revealDrawnTileAsPlaced(room, socket.id);
         nextTurn(room);
         io.to(room.id).emit('room_updated', room);
       } else {
@@ -173,6 +200,7 @@ io.on('connection', (socket) => {
     if (!room || room.status !== 'playing') return;
     if (room.players[room.currentTurnIndex].id !== socket.id) return;
 
+    // 뽑은 타일이 아직 패에 없으면 삽입 (조커는 이미 배치됨)
     addDrawnTileToPlayer(room, socket.id);
     nextTurn(room);
     io.to(room.id).emit('room_updated', room);
@@ -181,7 +209,6 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     console.log('disconnected:', socket.id);
 
-    // 랜덤 매칭 대기열에서 제거
     const qIdx = waitingQueue.findIndex(p => p.socketId === socket.id);
     if (qIdx !== -1) waitingQueue.splice(qIdx, 1);
 
@@ -192,7 +219,6 @@ io.on('connection', (socket) => {
     if (room.players.length === 0) {
       rooms.delete(room.id);
     } else if (room.status === 'playing') {
-      // 남은 플레이어가 1명이면 그 사람 승리
       if (room.players.length === 1) {
         const winner = room.players[0];
         room.status = 'finished';
@@ -220,3 +246,4 @@ const PORT = process.env.PORT || 3001;
 httpServer.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+

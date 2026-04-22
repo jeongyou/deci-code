@@ -1,10 +1,9 @@
-export type TileColor = 'black' | 'white';
+export type TileColor = 'black' | 'white' | 'joker';
 
 export interface Tile {
   id: string;
-  number: number | null; // null = joker
+  number: number | null;
   color: TileColor;
-  isJoker: boolean;
   isRevealed: boolean;
 }
 
@@ -17,13 +16,17 @@ export interface Player {
 
 export type GameStatus = 'waiting' | 'playing' | 'finished';
 
+export type GamePhase = 'draw' | 'insert' | 'guess' | 'end';
+
 export interface GameRoom {
   id: string;
   players: Player[];
   status: GameStatus;
+  phase: GamePhase;
   currentTurnIndex: number;
   deck: Tile[];
-  drawnTile: Tile | null; // 이번 턴에 뽑은 타일
+  drawnTile: Tile | null;
+  drawnTileId: string | null;
   winner: string | null;
 }
 
@@ -34,7 +37,10 @@ export interface ServerToClientEvents {
   game_started: (room: GameRoom) => void;
   tile_drawn: (tile: Tile) => void;
   guess_result: (correct: boolean, tile: Tile) => void;
+  must_place_joker: () => void;
+  must_reveal_tile: () => void;
   game_over: (winnerId: string, winnerNickname: string) => void;
+  waiting_for_match: () => void;
   error: (message: string) => void;
 }
 
@@ -43,6 +49,8 @@ export interface ClientToServerEvents {
   join_random: (nickname: string) => void;
   set_ready: () => void;
   draw_tile: () => void;
-  guess_tile: (targetPlayerId: string, tileId: string, guessedNumber: number | null) => void;
-  skip_guess: () => void; // 뽑은 타일 자기 패에 추가하고 턴 넘김
+  place_joker: (position: number) => void;
+  guess_tile: (targetPlayerId: string, tileId: string, guessedColor: TileColor, guessedNumber: number | null) => void;
+  skip_guess: () => void;
+  reveal_own_tile: (tileId: string) => void;
 }

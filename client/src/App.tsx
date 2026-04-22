@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import type { GameRoom, Tile } from './types';
+import type { GameRoom, Tile, TileColor } from './types';
 import { useSocket } from './hooks/useSocket';
 import { LobbyPage } from './pages/LobbyPage';
 import { WaitingRoom } from './pages/WaitingRoom';
@@ -19,6 +19,7 @@ export default function App() {
   const myIdRef = useRef<string>('');
   const [drawnTile, setDrawnTile] = useState<Tile | null>(null);
   const [hasDrawnThisTurn, setHasDrawnThisTurn] = useState(false);
+  const [mustPlaceJoker, setMustPlaceJoker] = useState(false);
   const [mustRevealTile, setMustRevealTile] = useState(false);
   const [lastGuessResult, setLastGuessResult] = useState<{ correct: boolean; tile: Tile } | null>(null);
   const [gameOver, setGameOver] = useState<GameOver | null>(null);
@@ -39,9 +40,10 @@ export default function App() {
       if (!isMyTurn) {
         setHasDrawnThisTurn(false);
         setDrawnTile(null);
+        setMustPlaceJoker(false);
         setMustRevealTile(false);
-      } else if (r.deck.length === 0) {
-        // 덱이 비었으면 뽑기 없이 바로 추리 가능
+      } else if (r.deck.length === 0 && r.phase === 'draw') {
+        // 덱이 비었으면 뽑기 없이 바로 추리
         setHasDrawnThisTurn(true);
       }
     }, []),
@@ -50,6 +52,7 @@ export default function App() {
       setRoom(r);
       setDrawnTile(null);
       setHasDrawnThisTurn(false);
+      setMustPlaceJoker(false);
       setMustRevealTile(false);
       setLastGuessResult(null);
       setPage('game');
@@ -58,6 +61,10 @@ export default function App() {
     onTileDrawn: useCallback((tile: Tile) => {
       setDrawnTile(tile);
       setHasDrawnThisTurn(true);
+    }, []),
+
+    onMustPlaceJoker: useCallback(() => {
+      setMustPlaceJoker(true);
     }, []),
 
     onGuessResult: useCallback((correct: boolean, tile: Tile) => {
@@ -93,6 +100,11 @@ export default function App() {
     socket.joinRandom(nickname);
   };
 
+  const handlePlaceJoker = (position: number) => {
+    setMustPlaceJoker(false);
+    socket.placeJoker(position);
+  };
+
   const handleBackToLobby = () => {
     setPage('lobby');
     setRoom(null);
@@ -100,6 +112,7 @@ export default function App() {
     myIdRef.current = '';
     setDrawnTile(null);
     setHasDrawnThisTurn(false);
+    setMustPlaceJoker(false);
     setMustRevealTile(false);
     setLastGuessResult(null);
     setGameOver(null);
@@ -132,9 +145,12 @@ export default function App() {
           myId={myId}
           drawnTile={drawnTile}
           hasDrawnThisTurn={hasDrawnThisTurn}
+          mustPlaceJoker={mustPlaceJoker}
           mustRevealTile={mustRevealTile}
           onDrawTile={socket.drawTile}
-          onGuessTile={socket.guessTile}
+          onPlaceJoker={handlePlaceJoker}
+          onGuessTile={(targetPlayerId: string, tileId: string, guessedColor: TileColor, guessedNumber: number | null) =>
+            socket.guessTile(targetPlayerId, tileId, guessedColor, guessedNumber)}
           onSkipGuess={socket.skipGuess}
           onRevealOwnTile={socket.revealOwnTile}
           lastGuessResult={lastGuessResult}

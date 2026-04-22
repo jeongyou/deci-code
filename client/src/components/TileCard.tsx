@@ -55,10 +55,16 @@ export function TileCard({ tile, faceDown = false, colorVisible = false, selecte
     boxShadow: selected ? '0 0 0 1px #c8a84b,0 4px 14px rgba(0,0,0,.5)' : '0 2px 8px rgba(0,0,0,.3)',
   };
 
+  const jokerFace = {
+    background: '#1e0f33',
+    border: selected ? '1.5px solid #c8a84b' : '1.5px solid #6a3db0',
+    boxShadow: selected ? '0 0 0 1px #c8a84b,0 4px 16px rgba(0,0,0,.6)' : '0 2px 8px rgba(0,0,0,.5)',
+  };
+
   const faceStyle = !faceDown
-    ? tile.color === 'white' ? whiteFace : blackFace
+    ? tile.color === 'white' ? whiteFace : tile.color === 'joker' ? jokerFace : blackFace
     : colorVisible
-      ? tile.color === 'white' ? whiteBack : blackBack
+      ? tile.color === 'white' ? whiteBack : tile.color === 'joker' ? jokerFace : blackBack
       : unkBack;
 
   const animStyle: React.CSSProperties = anim === 'appear'
@@ -89,12 +95,12 @@ export function TileCard({ tile, faceDown = false, colorVisible = false, selecte
       {!faceDown ? (
         <span style={{
           fontFamily: 'Playfair Display, Georgia, serif',
-          fontSize: fs, fontWeight: 900,
-          color: tile.color === 'white' ? '#111' : '#f0f0f0',
+          fontSize: tile.color === 'joker' ? fs * .65 : fs, fontWeight: 900,
+          color: tile.color === 'white' ? '#111' : tile.color === 'joker' ? '#b080ff' : '#f0f0f0',
           lineHeight: 1,
           letterSpacing: (tile.number !== null && tile.number >= 10) ? '-2px' : '-1px',
         }}>
-          {tile.isJoker ? '–' : tile.number}
+          {tile.color === 'joker' ? '★' : tile.number}
         </span>
       ) : colorVisible ? (
         <span style={{
