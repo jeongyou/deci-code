@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: davinci-code-server
+    runtime: node
+    rootDir: server
+    buildCommand: pnpm install && pnpm build
+    startCommand: pnpm start
+    envVars:
+      - key: NODE_ENV
+        value: production
