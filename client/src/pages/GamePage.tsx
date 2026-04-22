@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import type { GameRoom, Tile, Player } from '../types';
 import { TileCard } from '../components/TileCard';
 import { OrderGap } from '../components/OrderGap';
@@ -172,66 +172,87 @@ export function GamePage({ room, myId, drawnTile, hasDrawnThisTurn, mustRevealTi
   const [showGuess, setShowGuess] = useState(false);
   const [selTarget, setSelTarget] = useState<SelTarget | null>(null);
   const [guessedCorrectly, setGuessedCorrectly] = useState(false);
+  const [seenTurnIndex, setSeenTurnIndex] = useState(room.currentTurnIndex);
+  const [seenGuessResult, setSeenGuessResult] = useState(lastGuessResult);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [animMap, setAnimMap] = useState<Record<string, 'appear' | 'flip' | 'shake'>>({});
   const [log, setLog] = useState<string[]>(['게임 시작']);
-  const tid = useRef(0);
 
   const me = room.players.find(p => p.id === myId)!;
   const isMyTurn = room.players[room.currentTurnIndex]?.id === myId;
   const currentPlayer = room.players[room.currentTurnIndex];
   const opponents = room.players.filter(p => p.id !== myId);
 
-  // phase 파생
   const phase: Phase = !isMyTurn ? 'wait'
     : mustRevealTile ? 'penalty'
     : !hasDrawnThisTurn ? 'draw'
     : guessedCorrectly ? 'correct'
     : 'select';
 
+  // async 래핑 — effect 내 동기 setState 없이 호출 가능
   function addToast(msg: string, type: Toast['type'] = 'info', ms = 2600) {
-    const id = ++tid.current;
-    setToasts(p => [...p, { id, msg, type, fading: false }]);
+    const id = Date.now();
     setTimeout(() => {
-      setToasts(p => p.map(t => t.id === id ? { ...t, fading: true } : t));
-      setTimeout(() => setToasts(p => p.filter(t => t.id !== id)), 280);
-    }, ms);
-  }
-
-  function addAnim(tileId: string, type: 'appear' | 'flip' | 'shake') {
-    setAnimMap(p => ({ ...p, [tileId]: type }));
-    setTimeout(() => setAnimMap(p => { const n = { ...p }; delete n[tileId]; return n; }), 500);
+      setToasts(p => [...p, { id, msg, type, fading: false }]);
+      setTimeout(() => {
+        setToasts(p => p.map(t => t.id === id ? { ...t, fading: true } : t));
+        setTimeout(() => setToasts(p => p.filter(t => t.id !== id)), 280);
+      }, ms);
+    }, 0);
   }
 
   function addLog(msg: string) {
     setLog(p => [msg, ...p.slice(0, 29)]);
   }
 
-  // lastGuessResult 변화 감지
+  // async 래핑 — effect 내 동기 setState 없이 호출 가능
+  function addAnim(tileId: string, type: 'appear' | 'flip' | 'shake') {
+    setTimeout(() => {
+      setAnimMap(p => ({ ...p, [tileId]: type }));
+      setTimeout(() => setAnimMap(p => { const n = { ...p }; delete n[tileId]; return n; }), 500);
+    }, 0);
+  }
+
+  // 턴 변경 — render-time state reset (React 권장 패턴)
+  if (seenTurnIndex !== room.currentTurnIndex) {
+    setSeenTurnIndex(room.currentTurnIndex);
+    setSelTarget(null);
+    setShowGuess(false);
+    setGuessedCorrectly(false);
+    addLog(`${currentPlayer?.nickname ?? '?'}의 차례`);
+  }
+
+  // 턴 변경 — toast 사이드이펙트만 (addToast는 async, 동기 setState 없음)
+  useEffect(() => {
+    if (isMyTurn) {
+      addToast(room.deck.length === 0 ? '덱이 비었습니다 — 바로 추리하세요' : '당신의 차례입니다', 'success');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [room.currentTurnIndex]);
+
+  // 추리 결과 — render-time state + log (동기 setState, effect 아님)
+  if (lastGuessResult !== seenGuessResult) {
+    setSeenGuessResult(lastGuessResult);
+    if (lastGuessResult) {
+      setGuessedCorrectly(lastGuessResult.correct);
+      const tile = lastGuessResult.tile;
+      addLog(lastGuessResult.correct
+        ? `정답 적중 [${tile.color === 'white' ? '백' : '흑'}${tile.isJoker ? '조커' : tile.number}]`
+        : '추리 실패'
+      );
+    }
+  }
+
+  // 추리 결과 — toast/anim 사이드이펙트만 (async, 동기 setState 없음)
   useEffect(() => {
     if (!lastGuessResult) return;
     if (lastGuessResult.correct) {
       addToast(`정답 — ${lastGuessResult.tile.isJoker ? '조커' : lastGuessResult.tile.number}`, 'success', 3200);
       addAnim(lastGuessResult.tile.id, 'flip');
-      addLog(`정답 적중 [${lastGuessResult.tile.color === 'white' ? '백' : '흑'}${lastGuessResult.tile.isJoker ? '조커' : lastGuessResult.tile.number}]`);
-      setGuessedCorrectly(true);
     } else {
       addToast('틀렸습니다', 'error', 3000);
-      addLog('추리 실패');
-      setGuessedCorrectly(false);
     }
   }, [lastGuessResult]);
-
-  // 턴 변경 시 리셋
-  useEffect(() => {
-    setSelTarget(null);
-    setShowGuess(false);
-    setGuessedCorrectly(false);
-    if (isMyTurn) {
-      addToast(room.deck.length === 0 ? '덱이 비었습니다 — 바로 추리하세요' : '당신의 차례입니다', isMyTurn ? 'success' : 'info');
-    }
-    if (currentPlayer) addLog(`${currentPlayer.nickname}의 차례`);
-  }, [room.currentTurnIndex]);
 
   function handleTileClick(playerId: string, tileId: string, tileIdx: number) {
     if (phase !== 'select' && phase !== 'correct') return;

@@ -55,7 +55,7 @@ export function TileCard({ tile, faceDown = false, colorVisible = false, selecte
     boxShadow: selected ? '0 0 0 1px #c8a84b,0 4px 14px rgba(0,0,0,.5)' : '0 2px 8px rgba(0,0,0,.3)',
   };
 
-  let faceStyle = !faceDown
+  const faceStyle = !faceDown
     ? tile.color === 'white' ? whiteFace : blackFace
     : colorVisible
       ? tile.color === 'white' ? whiteBack : blackBack

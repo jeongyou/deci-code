@@ -32,7 +32,7 @@ export function useSocket(events: SocketEvents) {
     socket.on('error', (msg) => events.onError?.(msg));
 
     return () => { socket.disconnect(); };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
     joinRoom: (roomId: string, nickname: string) =>
