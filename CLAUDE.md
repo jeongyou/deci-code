@@ -42,7 +42,14 @@ cd client && pnpm dev   # port 5173
 의미 있는 단위로 커밋한다. `feat` / `fix` / `chore` 접두사 + 한 줄 요약.
 커밋 전 민감 파일(`.env`, `settings.local.json`) 포함 여부 반드시 확인.
 
-### 6. LOG
+### 6. ARCHITECTURE
+아래 중 하나라도 변경되면 `ARCHITECTURE.md`를 함께 업데이트한다.
+- 파일/디렉토리 추가·삭제·이동
+- 소켓 이벤트 추가·삭제·변경 (이름, 인자, 수신자)
+- App.tsx 전역 상태 변경
+- Phase 흐름 변경
+
+### 7. LOG
 DEVLOG.md에 작업 내용 추가 후 커밋한다.
 
 ## 규칙
