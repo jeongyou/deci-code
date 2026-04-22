@@ -1,18 +1,24 @@
 import type { Phase, SelTarget } from './types';
+import type { GamePhase } from '../../types';
 
 interface Props {
   phase: Phase;
+  roomPhase: GamePhase;
+  isCurrentPlayerResolvingDraw: boolean;
   deckLength: number;
   selTarget: SelTarget | null;
   hasDrawnThisTurn: boolean;
   currentPlayerName: string | undefined;
+  turnRemainingSec: number;
+  turnDurationSec: 30 | 60;
   onDrawTile: () => void;
   onSkipGuess: () => void;
   onGuessClick: () => void;
   onContinueGuess: () => void;
 }
 
-export function CenterZone({ phase, deckLength, selTarget, hasDrawnThisTurn, currentPlayerName, onDrawTile, onSkipGuess, onGuessClick, onContinueGuess }: Props) {
+export function CenterZone({ phase, roomPhase, isCurrentPlayerResolvingDraw, deckLength, selTarget, hasDrawnThisTurn, currentPlayerName, turnRemainingSec, turnDurationSec, onDrawTile, onSkipGuess, onGuessClick, onContinueGuess }: Props) {
+  const progress = turnDurationSec > 0 ? Math.max(0, Math.min(1, turnRemainingSec / turnDurationSec)) : 0;
   return (
     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: 'radial-gradient(ellipse at center, rgba(42,58,84,.3) 0%, transparent 70%)' }}>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, padding: 12 }}>
@@ -33,6 +39,13 @@ export function CenterZone({ phase, deckLength, selTarget, hasDrawnThisTurn, cur
         </div>
 
         <div style={{ width: 40, height: 1, background: '#2a3a54' }}/>
+
+        <div style={{ width: 150, display: 'flex', flexDirection: 'column', gap: 5, alignItems: 'center' }}>
+          <div style={{ width: '100%', height: 4, borderRadius: 2, background: '#1b2536', overflow: 'hidden', border: '1px solid #2a3a54' }}>
+            <div style={{ width: `${progress * 100}%`, height: '100%', background: turnRemainingSec <= 10 ? '#eb5757' : '#c8a84b', transition: 'width .3s ease' }}/>
+          </div>
+          <span style={{ fontFamily: 'Inter', fontSize: 10, color: turnRemainingSec <= 10 ? '#eb5757' : '#8898b0' }}>{turnRemainingSec}s</span>
+        </div>
 
         {/* 액션 */}
         <div style={{ textAlign: 'center', maxWidth: 180 }}>
@@ -56,7 +69,11 @@ export function CenterZone({ phase, deckLength, selTarget, hasDrawnThisTurn, cur
             </div>
           )}
           {phase === 'penalty' && <p style={{ fontFamily: 'Inter', fontSize: 10, color: '#eb5757', animation: 'blink 1.5s ease infinite' }}>내 타일을 선택하세요</p>}
-          {phase === 'wait' && <p style={{ fontFamily: 'Inter', fontSize: 10, color: '#4e6080' }}>{currentPlayerName}의 차례</p>}
+          {phase === 'wait' && (
+            <p style={{ fontFamily: 'Inter', fontSize: 10, color: isCurrentPlayerResolvingDraw || roomPhase === 'insert' ? '#c8a84b' : '#4e6080', animation: isCurrentPlayerResolvingDraw || roomPhase === 'insert' ? 'blink 1.5s ease infinite' : 'none' }}>
+              {isCurrentPlayerResolvingDraw || roomPhase === 'insert' ? `${currentPlayerName}님이 타일을 정리하는 중` : `${currentPlayerName}의 차례`}
+            </p>
+          )}
 
           {(phase === 'select' || phase === 'correct') && selTarget && (
             <button onClick={onGuessClick} style={{ background: '#c8a84b', color: '#0a0a0c', border: 'none', borderRadius: 3, padding: '9px 20px', fontFamily: 'Inter', fontWeight: 700, fontSize: 13, cursor: 'pointer', marginTop: 8, display: 'block', width: '100%' }}>추리하기</button>

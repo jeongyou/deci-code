@@ -28,6 +28,8 @@ export interface GameRoom {
   drawnTile: Tile | null;
   drawnTileId: string | null;
   winner: string | null;
+  turnDurationSec: 30 | 60;
+  turnStartedAt: number | null;
 }
 
 // Socket 이벤트 타입
@@ -36,7 +38,14 @@ export interface ServerToClientEvents {
   room_updated: (room: GameRoom) => void;
   game_started: (room: GameRoom) => void;
   tile_drawn: (tile: Tile) => void;
-  guess_result: (correct: boolean, tile: Tile) => void;
+  guess_result: (
+    correct: boolean,
+    tile: Tile,
+    guessedColor: TileColor,
+    guessedNumber: number | null,
+    guesserNickname: string,
+    targetNickname: string
+  ) => void;
   must_place_joker: () => void;
   must_reveal_tile: () => void;
   game_over: (winnerId: string, winnerNickname: string) => void;
@@ -45,7 +54,7 @@ export interface ServerToClientEvents {
 }
 
 export interface ClientToServerEvents {
-  join_room: (roomId: string, nickname: string) => void;
+  join_room: (roomId: string, nickname: string, turnDurationSec?: 30 | 60) => void;
   join_random: (nickname: string) => void;
   set_ready: () => void;
   draw_tile: () => void;
@@ -53,4 +62,5 @@ export interface ClientToServerEvents {
   guess_tile: (targetPlayerId: string, tileId: string, guessedColor: TileColor, guessedNumber: number | null) => void;
   skip_guess: () => void;
   reveal_own_tile: (tileId: string) => void;
+  restart_game: () => void;
 }

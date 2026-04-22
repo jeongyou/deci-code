@@ -6,8 +6,9 @@ import {
   createRoom, addPlayer, dealInitialTiles, drawTile,
   guessPlayerTile, addDrawnTileToPlayer, revealDrawnTileAsPlaced,
   insertJokerAtPosition, nextTurn, checkWinner, revealOwnTile,
+  resetRoomForReplay,
 } from './gameLogic';
-import type { GameRoom, TileColor } from './types';
+import type { GameRoom, Player, Tile, TileColor } from './types';
 
 const app = express();
 app.use(cors());
@@ -27,10 +28,13 @@ function generateRoomId(): string {
 io.on('connection', (socket) => {
   console.log('connected:', socket.id);
 
-  socket.on('join_room', (roomId: string, nickname: string) => {
+  socket.on('join_room', (roomId: string, nickname: string, turnDurationSec?: 30 | 60) => {
     let room = rooms.get(roomId);
     if (!room) {
       room = createRoom(roomId);
+      if (turnDurationSec === 30 || turnDurationSec === 60) {
+        room.turnDurationSec = turnDurationSec;
+      }
       rooms.set(roomId, room);
     }
     if (room.status !== 'waiting') {
@@ -44,8 +48,8 @@ io.on('connection', (socket) => {
 
     addPlayer(room, socket.id, nickname);
     socket.join(roomId);
-    io.to(roomId).emit('room_updated', room);
-    socket.emit('room_joined', room, socket.id);
+    emitRoomUpdated(room);
+    socket.emit('room_joined', roomForPlayer(room, socket.id), socket.id);
   });
 
   socket.on('join_random', (nickname: string) => {
@@ -62,10 +66,10 @@ io.on('connection', (socket) => {
         const s = io.sockets.sockets.get(p.socketId);
         if (s) {
           s.join(roomId);
-          s.emit('room_joined', room, p.socketId);
+          s.emit('room_joined', roomForPlayer(room, p.socketId), p.socketId);
         }
       }
-      io.to(roomId).emit('room_updated', room);
+      emitRoomUpdated(room);
     } else {
       socket.emit('waiting_for_match');
     }
@@ -84,9 +88,9 @@ io.on('connection', (socket) => {
     if (allReady) {
       room.status = 'playing';
       dealInitialTiles(room);
-      io.to(room.id).emit('game_started', room);
+      emitGameStarted(room);
     } else {
-      io.to(room.id).emit('room_updated', room);
+      emitRoomUpdated(room);
     }
   });
 
@@ -100,7 +104,7 @@ io.on('connection', (socket) => {
     if (!tile) {
       // 덱 비어있음 → 뽑기 없이 바로 추리
       room.phase = 'guess';
-      io.to(room.id).emit('room_updated', room);
+      emitRoomUpdated(room);
       return;
     }
 
@@ -111,10 +115,12 @@ io.on('connection', (socket) => {
       room.phase = 'insert';
       socket.emit('must_place_joker');
     } else {
+      // 일반 타일은 뽑는 즉시 내 패에 정렬 삽입하고, 오답 시 drawnTileId로 공개한다.
+      addDrawnTileToPlayer(room, socket.id);
       room.phase = 'guess';
     }
 
-    io.to(room.id).emit('room_updated', room);
+    emitRoomUpdated(room);
   });
 
   socket.on('place_joker', (position: number) => {
@@ -126,7 +132,7 @@ io.on('connection', (socket) => {
     const ok = insertJokerAtPosition(room, socket.id, position);
     if (!ok) return;
 
-    io.to(room.id).emit('room_updated', room);
+    emitRoomUpdated(room);
   });
 
   socket.on('guess_tile', (targetPlayerId: string, tileId: string, guessedColor: TileColor, guessedNumber: number | null) => {
@@ -135,6 +141,10 @@ io.on('connection', (socket) => {
     if (room.players[room.currentTurnIndex].id !== socket.id) return;
     if (room.phase !== 'guess') return;
 
+    const guesser = room.players.find(p => p.id === socket.id);
+    const target = room.players.find(p => p.id === targetPlayerId);
+    if (!guesser || !target) return;
+
     const correct = guessPlayerTile(room, targetPlayerId, tileId, guessedColor, guessedNumber);
     const targetTile = room.players
       .find(p => p.id === targetPlayerId)?.tiles
@@ -142,35 +152,42 @@ io.on('connection', (socket) => {
 
     if (!targetTile) return;
 
-    io.to(room.id).emit('guess_result', correct, targetTile);
+    io.to(room.id).emit(
+      'guess_result',
+      correct,
+      correct ? targetTile : { ...targetTile, color: targetTile.color === 'white' ? 'white' : 'black', number: null },
+      guessedColor,
+      guessedNumber,
+      guesser.nickname,
+      target.nickname
+    );
 
     if (correct) {
       const winner = checkWinner(room);
       if (winner) {
         room.status = 'finished';
+        room.phase = 'end';
         room.winner = winner.id;
         io.to(room.id).emit('game_over', winner.id, winner.nickname);
         return;
       }
-      // 정답 → 뽑은 타일을 패에 추가 (조커는 이미 place_joker로 배치됨)
-      addDrawnTileToPlayer(room, socket.id);
-      io.to(room.id).emit('room_updated', room);
+      emitRoomUpdated(room);
     } else {
       if (room.drawnTile) {
-        // 뽑은 타일이 아직 패에 없음 (비조커) → 공개 후 삽입, 턴 종료
+        // 조커가 아직 배치되지 않은 예외 상황
         room.drawnTile.isRevealed = true;
         addDrawnTileToPlayer(room, socket.id);
         nextTurn(room);
-        io.to(room.id).emit('room_updated', room);
+        emitRoomUpdated(room);
       } else if (room.drawnTileId) {
-        // 조커가 이미 배치된 경우 → 해당 타일 공개, 턴 종료
+        // 이번 턴에 뽑아 패에 들어간 타일 공개, 턴 종료
         revealDrawnTileAsPlaced(room, socket.id);
         nextTurn(room);
-        io.to(room.id).emit('room_updated', room);
+        emitRoomUpdated(room);
       } else {
         // 덱이 비어 뽑은 타일 없음 → 자기 타일 직접 선택해서 공개
         socket.emit('must_reveal_tile');
-        io.to(room.id).emit('room_updated', room);
+        emitRoomUpdated(room);
       }
     }
   });
@@ -186,13 +203,14 @@ io.on('connection', (socket) => {
     const winner = checkWinner(room);
     if (winner) {
       room.status = 'finished';
+      room.phase = 'end';
       room.winner = winner.id;
       io.to(room.id).emit('game_over', winner.id, winner.nickname);
       return;
     }
 
     nextTurn(room);
-    io.to(room.id).emit('room_updated', room);
+    emitRoomUpdated(room);
   });
 
   socket.on('skip_guess', () => {
@@ -200,10 +218,15 @@ io.on('connection', (socket) => {
     if (!room || room.status !== 'playing') return;
     if (room.players[room.currentTurnIndex].id !== socket.id) return;
 
-    // 뽑은 타일이 아직 패에 없으면 삽입 (조커는 이미 배치됨)
-    addDrawnTileToPlayer(room, socket.id);
     nextTurn(room);
-    io.to(room.id).emit('room_updated', room);
+    emitRoomUpdated(room);
+  });
+
+  socket.on('restart_game', () => {
+    const room = findRoomByPlayer(socket.id);
+    if (!room || room.status !== 'finished') return;
+    resetRoomForReplay(room);
+    emitRoomUpdated(room);
   });
 
   socket.on('disconnect', () => {
@@ -222,15 +245,16 @@ io.on('connection', (socket) => {
       if (room.players.length === 1) {
         const winner = room.players[0];
         room.status = 'finished';
+        room.phase = 'end';
         io.to(room.id).emit('game_over', winner.id, winner.nickname);
       } else {
         if (room.currentTurnIndex >= room.players.length) {
           room.currentTurnIndex = 0;
         }
-        io.to(room.id).emit('room_updated', room);
+        emitRoomUpdated(room);
       }
     } else {
-      io.to(room.id).emit('room_updated', room);
+      emitRoomUpdated(room);
     }
   });
 });
@@ -247,3 +271,34 @@ httpServer.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 
+function emitRoomUpdated(room: GameRoom): void {
+  for (const player of room.players) {
+    io.to(player.id).emit('room_updated', roomForPlayer(room, player.id));
+  }
+}
+
+function emitGameStarted(room: GameRoom): void {
+  for (const player of room.players) {
+    io.to(player.id).emit('game_started', roomForPlayer(room, player.id));
+  }
+}
+
+function roomForPlayer(room: GameRoom, viewerId: string): GameRoom {
+  return {
+    ...room,
+    players: room.players.map(player => playerForViewer(player, player.id === viewerId)),
+    drawnTile: room.drawnTile ? tileForViewer(room.drawnTile, true) : null,
+  };
+}
+
+function playerForViewer(player: Player, isSelf: boolean): Player {
+  return {
+    ...player,
+    tiles: player.tiles.map(tile => tileForViewer(tile, isSelf || tile.isRevealed)),
+  };
+}
+
+function tileForViewer(tile: Tile, revealIdentity: boolean): Tile {
+  if (revealIdentity || tile.color !== 'joker') return { ...tile };
+  return { ...tile, color: 'black', number: null };
+}

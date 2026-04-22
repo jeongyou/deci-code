@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import type { GameRoom, Tile, TileColor } from './types';
+import type { GameRoom, GuessResult, Tile, TileColor } from './types';
 import { useSocket } from './hooks/useSocket';
 import { LobbyPage } from './pages/LobbyPage';
 import { WaitingRoom } from './pages/WaitingRoom';
@@ -21,7 +21,7 @@ export default function App() {
   const [hasDrawnThisTurn, setHasDrawnThisTurn] = useState(false);
   const [mustPlaceJoker, setMustPlaceJoker] = useState(false);
   const [mustRevealTile, setMustRevealTile] = useState(false);
-  const [lastGuessResult, setLastGuessResult] = useState<{ correct: boolean; tile: Tile } | null>(null);
+  const [lastGuessResult, setLastGuessResult] = useState<GuessResult | null>(null);
   const [gameOver, setGameOver] = useState<GameOver | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,6 +36,9 @@ export default function App() {
 
     onRoomUpdated: useCallback((r: GameRoom) => {
       setRoom(r);
+      if (r.status === 'waiting') {
+        setPage('waiting');
+      }
       const isMyTurn = r.players[r.currentTurnIndex]?.id === myIdRef.current;
       if (!isMyTurn) {
         setHasDrawnThisTurn(false);
@@ -55,6 +58,7 @@ export default function App() {
       setMustPlaceJoker(false);
       setMustRevealTile(false);
       setLastGuessResult(null);
+      setGameOver(null);
       setPage('game');
     }, []),
 
@@ -67,10 +71,10 @@ export default function App() {
       setMustPlaceJoker(true);
     }, []),
 
-    onGuessResult: useCallback((correct: boolean, tile: Tile) => {
-      setLastGuessResult({ correct, tile });
+    onGuessResult: useCallback((result: GuessResult) => {
+      setLastGuessResult(result);
       setDrawnTile(null);
-      if (!correct) {
+      if (!result.correct) {
         setHasDrawnThisTurn(false);
       }
       setTimeout(() => setLastGuessResult(null), 2500);
@@ -90,9 +94,9 @@ export default function App() {
     }, []),
   });
 
-  const handleJoinRoom = (roomId: string, nickname: string) => {
+  const handleJoinRoom = (roomId: string, nickname: string, turnDurationSec?: 30 | 60) => {
     setError(null);
-    socket.joinRoom(roomId, nickname);
+    socket.joinRoom(roomId, nickname, turnDurationSec);
   };
 
   const handleJoinRandom = (nickname: string) => {
@@ -163,23 +167,33 @@ export default function App() {
   if (page === 'finished') {
     const isWinner = gameOver?.winnerId === myId;
     return (
-      <div className="min-h-screen bg-[#0d1117] flex items-center justify-center p-4">
-        <div className="w-full max-w-sm text-center">
-          <div className="bg-white/4 border border-white/8 rounded-2xl p-8 space-y-4">
-            <div className="text-6xl">{isWinner ? '🏆' : '💀'}</div>
-            <h1 className="text-3xl font-black text-white">
-              {isWinner ? '승리!' : '패배'}
-            </h1>
-            <p className="text-white/40">
-              {isWinner
-                ? '모든 상대 타일을 맞혔습니다!'
-                : `${gameOver?.winnerNickname ?? '상대방'}이(가) 승리했습니다.`}
-            </p>
+      <div style={{ minHeight: '100vh', background: '#131c2b', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+        <div style={{ width: 'min(420px,92vw)', textAlign: 'center', animation: 'screen-in .35s ease' }}>
+          <p style={{ fontFamily: 'Inter', fontSize: 10, letterSpacing: 4, color: '#4e6080', textTransform: 'uppercase', marginBottom: 12 }}>Game Finished</p>
+          <h1 style={{ fontFamily: 'Playfair Display', fontSize: 46, fontWeight: 900, color: isWinner ? '#c8a84b' : '#dde3ee', letterSpacing: 2, lineHeight: 1 }}>
+            {isWinner ? '승리' : '패배'}
+          </h1>
+          <div style={{ width: 42, height: 1, background: '#2a3a54', margin: '18px auto 20px' }}/>
+          <p style={{ fontFamily: 'Inter', fontSize: 14, lineHeight: 1.7, color: '#8898b0', marginBottom: 28 }}>
+            {isWinner
+              ? '모든 상대 타일을 추리했습니다.'
+              : `${gameOver?.winnerNickname ?? '상대방'}님이 마지막까지 살아남았습니다.`}
+          </p>
+          <div style={{
+            background: '#1b2536', border: '1px solid #2a3a54', borderRadius: 8,
+            padding: 16, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8,
+          }}>
+            <button
+              onClick={socket.restartGame}
+              style={{ border: 'none', borderRadius: 4, padding: '12px 10px', background: '#c8a84b', color: '#0a0a0c', fontFamily: 'Inter', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+            >
+              같은 방에서 다시하기
+            </button>
             <button
               onClick={handleBackToLobby}
-              className="w-full bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold py-3.5 rounded-xl transition-colors"
+              style={{ border: '1px solid #2a3a54', borderRadius: 4, padding: '12px 10px', background: 'transparent', color: '#8898b0', fontFamily: 'Inter', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
             >
-              로비로 돌아가기
+              로비로 나가기
             </button>
           </div>
         </div>

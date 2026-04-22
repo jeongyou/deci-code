@@ -27,4 +27,15 @@ export interface GameRoom {
   drawnTile: Tile | null;
   drawnTileId: string | null;
   winner: string | null;
+  turnDurationSec: 30 | 60;
+  turnStartedAt: number | null;
+}
+
+export interface GuessResult {
+  correct: boolean;
+  tile: Tile;
+  guessedColor: TileColor;
+  guessedNumber: number | null;
+  guesserNickname: string;
+  targetNickname: string;
 }

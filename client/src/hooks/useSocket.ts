@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
-import type { GameRoom, Tile, TileColor } from '../types';
+import type { GameRoom, GuessResult, Tile, TileColor } from '../types';
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3001';
 
@@ -9,7 +9,7 @@ export interface SocketEvents {
   onRoomUpdated?: (room: GameRoom) => void;
   onGameStarted?: (room: GameRoom) => void;
   onTileDrawn?: (tile: Tile) => void;
-  onGuessResult?: (correct: boolean, tile: Tile) => void;
+  onGuessResult?: (result: GuessResult) => void;
   onMustPlaceJoker?: () => void;
   onMustRevealTile?: () => void;
   onGameOver?: (winnerId: string, winnerNickname: string) => void;
@@ -27,7 +27,8 @@ export function useSocket(events: SocketEvents) {
     socket.on('room_updated', (room) => events.onRoomUpdated?.(room));
     socket.on('game_started', (room) => events.onGameStarted?.(room));
     socket.on('tile_drawn', (tile) => events.onTileDrawn?.(tile));
-    socket.on('guess_result', (correct, tile) => events.onGuessResult?.(correct, tile));
+    socket.on('guess_result', (correct, tile, guessedColor, guessedNumber, guesserNickname, targetNickname) =>
+      events.onGuessResult?.({ correct, tile, guessedColor, guessedNumber, guesserNickname, targetNickname }));
     socket.on('must_place_joker', () => events.onMustPlaceJoker?.());
     socket.on('must_reveal_tile', () => events.onMustRevealTile?.());
     socket.on('game_over', (winnerId, winnerNickname) => events.onGameOver?.(winnerId, winnerNickname));
@@ -37,8 +38,8 @@ export function useSocket(events: SocketEvents) {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
-    joinRoom: (roomId: string, nickname: string) =>
-      socketRef.current?.emit('join_room', roomId, nickname),
+    joinRoom: (roomId: string, nickname: string, turnDurationSec?: 30 | 60) =>
+      socketRef.current?.emit('join_room', roomId, nickname, turnDurationSec),
     joinRandom: (nickname: string) =>
       socketRef.current?.emit('join_random', nickname),
     setReady: () => socketRef.current?.emit('set_ready'),
@@ -49,5 +50,6 @@ export function useSocket(events: SocketEvents) {
       socketRef.current?.emit('guess_tile', targetPlayerId, tileId, guessedColor, guessedNumber),
     skipGuess: () => socketRef.current?.emit('skip_guess'),
     revealOwnTile: (tileId: string) => socketRef.current?.emit('reveal_own_tile', tileId),
+    restartGame: () => socketRef.current?.emit('restart_game'),
   };
 }

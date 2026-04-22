@@ -61,10 +61,11 @@ export function TileCard({ tile, faceDown = false, colorVisible = false, selecte
     boxShadow: selected ? '0 0 0 1px #c8a84b,0 4px 16px rgba(0,0,0,.6)' : '0 2px 8px rgba(0,0,0,.5)',
   };
 
+  const hiddenJokerBack = faceDown && colorVisible && tile.color === 'joker';
   const faceStyle = !faceDown
     ? tile.color === 'white' ? whiteFace : tile.color === 'joker' ? jokerFace : blackFace
     : colorVisible
-      ? tile.color === 'white' ? whiteBack : tile.color === 'joker' ? jokerFace : blackBack
+      ? hiddenJokerBack ? unkBack : tile.color === 'white' ? whiteBack : blackBack
       : unkBack;
 
   const animStyle: React.CSSProperties = anim === 'appear'
@@ -76,7 +77,9 @@ export function TileCard({ tile, faceDown = false, colorVisible = false, selecte
         : {};
 
   const selAnim: React.CSSProperties = selected ? { animation: 'gold-pulse 1.6s ease infinite' } : {};
-  const lift: React.CSSProperties = hovered && onClick && !selected ? { transform: 'translateY(-3px)' } : {};
+  const revealOffset = tile.isRevealed ? -9 : 0;
+  const hoverOffset = hovered && onClick && !selected ? -3 : 0;
+  const lift: React.CSSProperties = revealOffset || hoverOffset ? { transform: `translateY(${revealOffset + hoverOffset}px)` } : {};
 
   return (
     <div
@@ -102,7 +105,7 @@ export function TileCard({ tile, faceDown = false, colorVisible = false, selecte
         }}>
           {tile.color === 'joker' ? '★' : tile.number}
         </span>
-      ) : colorVisible ? (
+      ) : colorVisible && !hiddenJokerBack ? (
         <span style={{
           fontFamily: 'Playfair Display',
           fontSize: fs * .7, fontWeight: 700,
@@ -118,7 +121,7 @@ export function TileCard({ tile, faceDown = false, colorVisible = false, selecte
       )}
 
       {/* color hint strip for face-down colorVisible */}
-      {faceDown && colorVisible && (
+      {faceDown && colorVisible && !hiddenJokerBack && (
         <div style={{
           position: 'absolute', bottom: 3, left: '50%', transform: 'translateX(-50%)',
           width: w - 10, height: 3, borderRadius: 1.5,
@@ -141,6 +144,13 @@ export function TileCard({ tile, faceDown = false, colorVisible = false, selecte
           position: 'absolute', inset: 0, borderRadius: 4,
           border: '1.5px solid rgba(200,60,60,.7)',
           background: 'rgba(200,40,40,.1)', pointerEvents: 'none',
+        }}/>
+      )}
+      {tile.isRevealed && (
+        <div style={{
+          position: 'absolute', top: -5, left: '50%', transform: 'translateX(-50%)',
+          width: w * .5, height: 3, borderRadius: 2, background: '#eb5757',
+          boxShadow: '0 0 8px rgba(235,87,87,.55)', pointerEvents: 'none',
         }}/>
       )}
     </div>

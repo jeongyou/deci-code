@@ -3,7 +3,7 @@ import { TileCard } from '../components/TileCard';
 import type { Tile } from '../types';
 
 interface Props {
-  onJoinRoom: (roomId: string, nickname: string) => void;
+  onJoinRoom: (roomId: string, nickname: string, turnDurationSec?: 30 | 60) => void;
   onJoinRandom: (nickname: string) => void;
 }
 
@@ -26,8 +26,10 @@ const DECO_POS = [
 
 export function LobbyPage({ onJoinRoom, onJoinRandom }: Props) {
   const [name, setName] = useState('');
-  const [mode, setMode] = useState<Mode>(null);
-  const [code, setCode] = useState('');
+  const initialRoomCode = new URLSearchParams(window.location.search).get('room')?.toUpperCase().slice(0, 6) ?? '';
+  const [mode, setMode] = useState<Mode>(initialRoomCode ? 'join' : null);
+  const [code, setCode] = useState(initialRoomCode);
+  const [turnDurationSec, setTurnDurationSec] = useState<30 | 60>(30);
   const [error, setError] = useState('');
 
   const ready = name.trim().length >= 1;
@@ -40,7 +42,7 @@ export function LobbyPage({ onJoinRoom, onJoinRandom }: Props) {
       onJoinRoom(code.toUpperCase(), name.trim());
     } else if (m === 'create') {
       const id = Math.random().toString(36).substring(2, 8).toUpperCase();
-      onJoinRoom(id, name.trim());
+      onJoinRoom(id, name.trim(), turnDurationSec);
     } else if (m === 'random') {
       onJoinRandom(name.trim());
     }
@@ -118,6 +120,29 @@ export function LobbyPage({ onJoinRoom, onJoinRandom }: Props) {
               onFocus={e => (e.target.style.borderColor = '#c8a84b')}
               onBlur={e => (e.target.style.borderColor = '#2a3a54')}
             />
+          </div>
+        )}
+
+        {mode === 'create' && (
+          <div style={{ marginBottom: 20, animation: 'screen-in .25s ease' }}>
+            <label style={{ fontFamily: 'Inter', fontSize: 10, letterSpacing: 2, color: '#4e6080', textTransform: 'uppercase', display: 'block', marginBottom: 7 }}>추리 제한시간</label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              {([30, 60] as const).map(sec => (
+                <button
+                  key={sec}
+                  onClick={() => setTurnDurationSec(sec)}
+                  style={{
+                    padding: '10px 0', borderRadius: 4,
+                    border: `1px solid ${turnDurationSec === sec ? '#c8a84b' : '#2a3a54'}`,
+                    background: turnDurationSec === sec ? 'rgba(200,168,75,.15)' : '#1b2536',
+                    color: turnDurationSec === sec ? '#c8a84b' : '#8898b0',
+                    fontFamily: 'Inter', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                  }}
+                >
+                  {sec === 30 ? '30초' : '1분'}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 

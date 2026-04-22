@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import type { TileColor } from '../../types';
 
 interface Props {
-  onGuess: (color: TileColor, n: number | null) => void;
+  onGuess: (kind: 'number' | 'joker', n: number | null) => void;
   onCancel: () => void;
 }
 
@@ -11,44 +10,41 @@ const BTN_BASE: React.CSSProperties = {
 };
 
 export function GuessModal({ onGuess, onCancel }: Props) {
-  const [color, setColor] = useState<TileColor | null>(null);
-  const [num, setNum] = useState<number | null | 'J'>(null);
+  const [mode, setMode] = useState<'number' | 'joker'>('number');
+  const [num, setNum] = useState<number | null>(null);
 
-  const canSubmit = color !== null && (color === 'joker' || num !== null);
+  const canSubmit = mode === 'joker' || num !== null;
 
   function handleSubmit() {
-    if (!canSubmit || color === null) return;
-    if (color === 'joker') { onGuess('joker', null); return; }
-    onGuess(color, num === 'J' ? null : (num as number));
+    if (!canSubmit) return;
+    if (mode === 'joker') { onGuess('joker', null); return; }
+    onGuess('number', num);
   }
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.82)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ background: '#1b2536', border: '1px solid #2a3a54', borderRadius: 8, padding: '28px 30px', width: 'min(380px,92vw)', animation: 'modal-in .2s ease', boxShadow: '0 24px 80px rgba(0,0,0,.7)' }}>
         <p style={{ fontFamily: 'Playfair Display', fontSize: 20, color: '#dde3ee', marginBottom: 4, letterSpacing: 1 }}>추리하기</p>
-        <p style={{ fontFamily: 'Inter', fontSize: 12, color: '#4e6080', marginBottom: 20 }}>색상 → 숫자 순서로 선택하세요</p>
+        <p style={{ fontFamily: 'Inter', fontSize: 12, color: '#4e6080', marginBottom: 20 }}>선택한 타일의 색상은 자동으로 적용됩니다</p>
 
-        {/* 색상 선택 */}
-        <p style={{ fontFamily: 'Inter', fontSize: 10, color: '#4e6080', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 }}>색상</p>
+        <p style={{ fontFamily: 'Inter', fontSize: 10, color: '#4e6080', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 }}>선언</p>
         <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
           {([
-            { value: 'black' as TileColor, label: '흑', bg: '#161618', border: '#3a3a3a', text: '#e0e0e0' },
-            { value: 'white' as TileColor, label: '백', bg: '#bfbab0', border: '#888', text: '#1a1a1a' },
-            { value: 'joker' as TileColor, label: '조커', bg: '#2a1a4a', border: '#6a3db0', text: '#b080ff' },
+            { value: 'number' as const, label: '숫자', bg: '#212e44', border: '#2a3a54', text: '#8898b0' },
+            { value: 'joker' as const, label: '조커', bg: '#2a1a4a', border: '#6a3db0', text: '#b080ff' },
           ]).map(c => (
-            <button key={c.value} onClick={() => { setColor(c.value); setNum(null); }} style={{
+            <button key={c.value} onClick={() => { setMode(c.value); setNum(null); }} style={{
               ...BTN_BASE,
               flex: 1, padding: '10px 0',
-              border: color === c.value ? `2px solid #c8a84b` : `1.5px solid ${c.border}`,
-              background: color === c.value ? `rgba(200,168,75,.1)` : c.bg,
-              color: color === c.value ? '#c8a84b' : c.text,
+              border: mode === c.value ? `2px solid #c8a84b` : `1.5px solid ${c.border}`,
+              background: mode === c.value ? `rgba(200,168,75,.1)` : c.bg,
+              color: mode === c.value ? '#c8a84b' : c.text,
               fontFamily: 'Inter', fontSize: 13, fontWeight: 600,
             }}>{c.label}</button>
           ))}
         </div>
 
-        {/* 숫자 선택 (조커 선택 시 숨김) */}
-        {color !== null && color !== 'joker' && (
+        {mode === 'number' && (
           <>
             <p style={{ fontFamily: 'Inter', fontSize: 10, color: '#4e6080', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 }}>숫자</p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 24 }}>
@@ -66,7 +62,7 @@ export function GuessModal({ onGuess, onCancel }: Props) {
           </>
         )}
 
-        {color === 'joker' && (
+        {mode === 'joker' && (
           <p style={{ fontFamily: 'Inter', fontSize: 12, color: '#b080ff', marginBottom: 24 }}>조커로 선언합니다</p>
         )}
 

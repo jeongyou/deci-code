@@ -12,8 +12,11 @@ export function WaitingRoom({ room, myId, onReady }: Props) {
   const me = room.players.find(p => p.id === myId);
   const emptySlots = 4 - room.players.length;
 
-  function copyCode() {
-    navigator.clipboard.writeText(room.id).catch(() => {});
+  function copyInviteLink() {
+    const url = new URL(window.location.href);
+    url.search = '';
+    url.searchParams.set('room', room.id);
+    navigator.clipboard.writeText(url.toString()).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
@@ -39,7 +42,7 @@ export function WaitingRoom({ room, myId, onReady }: Props) {
               {room.id}
             </span>
             <button
-              onClick={copyCode}
+              onClick={copyInviteLink}
               style={{
                 background: copied ? 'rgba(200,168,75,.15)' : 'none',
                 border: `1px solid ${copied ? '#c8a84b' : '#2a3a54'}`,
@@ -48,11 +51,11 @@ export function WaitingRoom({ room, myId, onReady }: Props) {
                 fontFamily: 'Inter', fontSize: 11, transition: 'all .2s',
               }}
             >
-              {copied ? '✓ 복사됨' : '복사'}
+              {copied ? '복사됨' : '초대 링크'}
             </button>
           </div>
           <p style={{ fontFamily: 'Inter', fontSize: 11, color: '#4e6080', marginTop: 8 }}>
-            이 코드를 친구에게 공유하세요
+            초대 링크를 공유하면 바로 이 방으로 입장할 수 있습니다
           </p>
         </div>
 
@@ -64,6 +67,9 @@ export function WaitingRoom({ room, myId, onReady }: Props) {
           <div style={{ padding: '10px 16px', borderBottom: '1px solid #2a3a54' }}>
             <p style={{ fontFamily: 'Inter', fontSize: 10, letterSpacing: 3, color: '#4e6080', textTransform: 'uppercase' }}>
               플레이어 {room.players.length} / 4
+              <span style={{ float: 'right', letterSpacing: 0, textTransform: 'none', color: '#8898b0' }}>
+                추리 {room.turnDurationSec}초
+              </span>
             </p>
           </div>
 

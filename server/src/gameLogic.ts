@@ -63,6 +63,10 @@ export function dealInitialTiles(room: GameRoom): void {
   }
   room.deck = deck;
   room.phase = 'draw';
+  room.drawnTile = null;
+  room.drawnTileId = null;
+  room.winner = null;
+  room.turnStartedAt = Date.now();
 }
 
 export function drawTile(room: GameRoom): Tile | null {
@@ -133,6 +137,7 @@ export function nextTurn(room: GameRoom): void {
   room.drawnTile = null;
   room.drawnTileId = null;
   room.phase = 'draw';
+  room.turnStartedAt = Date.now();
   const playerCount = room.players.length;
   let next = (room.currentTurnIndex + 1) % playerCount;
 
@@ -174,7 +179,24 @@ export function createRoom(id: string): GameRoom {
     drawnTile: null,
     drawnTileId: null,
     winner: null,
+    turnDurationSec: 30,
+    turnStartedAt: null,
   };
+}
+
+export function resetRoomForReplay(room: GameRoom): void {
+  room.status = 'waiting';
+  room.phase = 'draw';
+  room.currentTurnIndex = 0;
+  room.deck = [];
+  room.drawnTile = null;
+  room.drawnTileId = null;
+  room.winner = null;
+  room.turnStartedAt = null;
+  for (const player of room.players) {
+    player.tiles = [];
+    player.isReady = false;
+  }
 }
 
 export function addPlayer(room: GameRoom, playerId: string, nickname: string): Player {

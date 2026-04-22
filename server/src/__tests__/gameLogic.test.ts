@@ -4,6 +4,7 @@ import {
   guessPlayerTile, addDrawnTileToPlayer, insertJokerAtPosition,
   revealDrawnTileAsPlaced, nextTurn, checkWinner,
   isPlayerEliminated, revealOwnTile, sortTiles, findInsertIndex,
+  resetRoomForReplay,
 } from '../gameLogic';
 import type { GameRoom, Tile } from '../types';
 
@@ -30,6 +31,8 @@ describe('createRoom', () => {
     expect(room.phase).toBe('draw');
     expect(room.drawnTile).toBeNull();
     expect(room.drawnTileId).toBeNull();
+    expect(room.turnDurationSec).toBe(30);
+    expect(room.turnStartedAt).toBeNull();
   });
 });
 
@@ -86,6 +89,7 @@ describe('dealInitialTiles', () => {
     const room = makeRoom(2);
     dealInitialTiles(room);
     expect(room.phase).toBe('draw');
+    expect(room.turnStartedAt).toEqual(expect.any(Number));
   });
 });
 
@@ -323,6 +327,39 @@ describe('nextTurn', () => {
     expect(room.drawnTile).toBeNull();
     expect(room.drawnTileId).toBeNull();
     expect(room.phase).toBe('draw');
+    expect(room.turnStartedAt).toEqual(expect.any(Number));
+  });
+});
+
+// ─── resetRoomForReplay ──────────────────────────────────────────────────────
+
+describe('resetRoomForReplay', () => {
+  it('같은 플레이어로 대기방 상태를 초기화한다', () => {
+    const room = makeRoom(2);
+    room.status = 'finished';
+    room.phase = 'end';
+    room.currentTurnIndex = 1;
+    room.deck = [makeTile('d', 'black', 1)];
+    room.drawnTile = makeTile('x', 'white', 2);
+    room.drawnTileId = 'x';
+    room.winner = 'p1';
+    room.turnStartedAt = Date.now();
+    room.players[0].isReady = true;
+    room.players[0].tiles = [makeTile('a', 'black', 3)];
+
+    resetRoomForReplay(room);
+
+    expect(room.status).toBe('waiting');
+    expect(room.phase).toBe('draw');
+    expect(room.currentTurnIndex).toBe(0);
+    expect(room.deck).toHaveLength(0);
+    expect(room.drawnTile).toBeNull();
+    expect(room.drawnTileId).toBeNull();
+    expect(room.winner).toBeNull();
+    expect(room.turnStartedAt).toBeNull();
+    expect(room.players).toHaveLength(2);
+    expect(room.players[0].isReady).toBe(false);
+    expect(room.players[0].tiles).toHaveLength(0);
   });
 });
 

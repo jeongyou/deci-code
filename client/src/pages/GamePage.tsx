@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { GameRoom, Tile, TileColor } from '../types';
+import type { GameRoom, GuessResult, Tile, TileColor } from '../types';
 import { Toasts } from '../components/Toasts';
 import type { Toast } from '../components/Toasts';
 import { GuessModal } from './game/GuessModal';
@@ -24,7 +24,7 @@ interface Props {
   onGuessTile: (targetPlayerId: string, tileId: string, guessedColor: TileColor, guessedNumber: number | null) => void;
   onSkipGuess: () => void;
   onRevealOwnTile: (tileId: string) => void;
-  lastGuessResult: { correct: boolean; tile: Tile } | null;
+  lastGuessResult: GuessResult | null;
 }
 
 export function GamePage({ room, myId, drawnTile, hasDrawnThisTurn, mustPlaceJoker, mustRevealTile, onDrawTile, onPlaceJoker, onGuessTile, onSkipGuess, onRevealOwnTile, lastGuessResult }: Props) {
@@ -36,10 +36,14 @@ export function GamePage({ room, myId, drawnTile, hasDrawnThisTurn, mustPlaceJok
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [animMap, setAnimMap] = useState<Record<string, 'appear' | 'flip' | 'shake'>>({});
   const [log, setLog] = useState<string[]>(['게임 시작']);
+  const [now, setNow] = useState(Date.now());
 
   const me = room.players.find(p => p.id === myId)!;
   const isMyTurn = room.players[room.currentTurnIndex]?.id === myId;
   const currentPlayer = room.players[room.currentTurnIndex];
+  const isCurrentPlayerResolvingDraw = !isMyTurn && room.drawnTileId !== null;
+  const turnElapsedSec = room.turnStartedAt ? Math.max(0, Math.floor((now - room.turnStartedAt) / 1000)) : 0;
+  const turnRemainingSec = Math.max(0, room.turnDurationSec - turnElapsedSec);
   const opponents = room.players.filter(p => p.id !== myId);
   const seats = { top: opponents[0] ?? null, left: opponents[1] ?? null, right: opponents[2] ?? null };
 
@@ -84,14 +88,25 @@ export function GamePage({ room, myId, drawnTile, hasDrawnThisTurn, mustPlaceJok
     }
   }, [room.currentTurnIndex]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
   // 추리 결과 — render-time state + log
   if (lastGuessResult !== seenGuessResult) {
     setSeenGuessResult(lastGuessResult);
     if (lastGuessResult) {
       setGuessedCorrectly(lastGuessResult.correct);
-      const { tile } = lastGuessResult;
+      const { tile, guessedColor, guessedNumber, guesserNickname, targetNickname } = lastGuessResult;
       const label = tile.color === 'joker' ? '조커' : `${tile.color === 'white' ? '백' : '흑'}${tile.number}`;
-      setLog(p => [lastGuessResult.correct ? `정답 적중 [${label}]` : '추리 실패', ...p.slice(0, 29)]);
+      const guessedLabel = guessedColor === 'joker' ? '조커' : `${guessedColor === 'white' ? '백' : '흑'}${guessedNumber}`;
+      setLog(p => [
+        lastGuessResult.correct
+          ? `${guesserNickname} → ${targetNickname}: ${guessedLabel} 정답 [${label}]`
+          : `${guesserNickname} → ${targetNickname}: ${guessedLabel} 오답`,
+        ...p.slice(0, 29),
+      ]);
     }
   }
 
@@ -115,10 +130,14 @@ export function GamePage({ room, myId, drawnTile, hasDrawnThisTurn, mustPlaceJok
     setShowGuess(true);
   }
 
-  function handleGuess(color: TileColor, num: number | null) {
+  function handleGuess(kind: 'number' | 'joker', num: number | null) {
     if (!selTarget) return;
+    const targetPlayer = room.players.find(p => p.id === selTarget.playerId);
+    const targetTile = targetPlayer?.tiles.find(t => t.id === selTarget.tileId);
+    if (!targetTile) return;
+    const guessedColor: TileColor = kind === 'joker' ? 'joker' : targetTile.color === 'white' ? 'white' : 'black';
     setShowGuess(false);
-    onGuessTile(selTarget.playerId, selTarget.tileId, color, num);
+    onGuessTile(selTarget.playerId, selTarget.tileId, guessedColor, kind === 'joker' ? null : num);
     setSelTarget(null);
   }
 
@@ -178,9 +197,13 @@ export function GamePage({ room, myId, drawnTile, hasDrawnThisTurn, mustPlaceJok
             <CenterZone
               phase={phase}
               deckLength={room.deck.length}
+              roomPhase={room.phase}
+              isCurrentPlayerResolvingDraw={isCurrentPlayerResolvingDraw}
               selTarget={selTarget}
               hasDrawnThisTurn={hasDrawnThisTurn}
               currentPlayerName={currentPlayer?.nickname}
+              turnRemainingSec={turnRemainingSec}
+              turnDurationSec={room.turnDurationSec}
               onDrawTile={onDrawTile}
               onSkipGuess={onSkipGuess}
               onGuessClick={() => setShowGuess(true)}
@@ -210,8 +233,23 @@ export function GamePage({ room, myId, drawnTile, hasDrawnThisTurn, mustPlaceJok
           phase={phase}
           isMyTurn={isMyTurn}
           log={log}
+          turnRemainingSec={turnRemainingSec}
+          turnDurationSec={room.turnDurationSec}
         />
       </div>
+
+      {!isMyTurn && currentPlayer && (
+        <div style={{
+          position: 'fixed', left: '50%', top: 58, transform: 'translateX(-50%)',
+          background: 'rgba(27,37,54,.94)', border: '1px solid #2a3a54', borderRadius: 6,
+          padding: '8px 14px', color: '#dde3ee', fontFamily: 'Inter', fontSize: 12,
+          boxShadow: '0 10px 30px rgba(0,0,0,.35)', zIndex: 50, display: 'flex', alignItems: 'center', gap: 8,
+        }}>
+          <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#c8a84b', animation: 'blink 1s ease infinite' }}/>
+          {isCurrentPlayerResolvingDraw ? `${currentPlayer.nickname}님이 타일을 정리하는 중` : `${currentPlayer.nickname}님의 차례`}
+          <span style={{ color: '#8898b0' }}>{turnRemainingSec}s</span>
+        </div>
+      )}
 
       <style>{`@media(max-width:700px){.sidebar{display:none!important}}`}</style>
     </div>
