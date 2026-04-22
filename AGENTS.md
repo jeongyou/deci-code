@@ -134,7 +134,7 @@ Server → Client:
 4. TEST: `./check.sh`와 브라우저 수동 확인을 수행한다.
 5. ARCHITECTURE: 구조/소켓/App 전역 상태/phase가 바뀌면 `ARCHITECTURE.md`를 업데이트한다.
 6. LOG: 의미 있는 변경 후 `DEVLOG.md`에 작업 내용을 추가한다.
-7. COMMIT: 민감 파일 포함 여부를 확인하고 의미 있는 단위로 커밋한다.
+7. COMMIT: 민감 파일 포함 여부를 확인하고 의미 있는 단위로 나눠 커밋한다.
 
 ## Coding Rules
 
@@ -144,6 +144,8 @@ Server → Client:
 - 파일/디렉터리 구조, 소켓 이벤트, App 전역 상태, phase 흐름이 바뀌면 `ARCHITECTURE.md`를 업데이트한다.
 - 의미 있는 변경 후 `DEVLOG.md`에 작업 내용을 추가한다.
 - 커밋 전 `./check.sh`를 통과시킨다.
+- 커밋 메시지는 Angular/Conventional Commits 형식을 따른다. 타입은 영어(`feat`, `fix`, `docs`, `chore`, `refactor`, `test` 등)로 쓰고, 설명은 한국어로 작성한다. 예: `docs: 커밋 작성 규칙 추가`
+- 서로 독립적인 변경은 의미 있는 단위로 나눠 커밋한다. 예: 문서 정리, 기능 구현, 버그 수정, 포맷 변경은 가능하면 별도 커밋으로 분리한다.
 - `.claude/settings.local.json`, `.env`류 파일은 커밋하지 않는다.
 
 ## Sync Rule
