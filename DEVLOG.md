@@ -34,7 +34,7 @@
 - 전체 UI 리디자인 (#0d1117 배경, 물리 타일 느낌)
 
 ### 다음 작업
-- [ ] 배포 (Vercel + Render)
+- [x] 배포 (Vercel + Render)
 
 ---
 
@@ -83,5 +83,10 @@
 - `check.sh` 신규: `./check.sh` 한 번으로 서버 테스트 → 서버 빌드 → 클라이언트 빌드 전체 검증
 - `./check.sh --watch`: vitest watch 모드 (TDD)
 
+### 배포
+- Vercel(client) + Render(server) 배포 완료
+- 실제 배포 URL은 저장소 문서에 아직 미기록
+
 ### 다음 작업
-- [ ] 배포 (Vercel + Render)
+- [ ] 배포 URL 및 환경 변수 문서화
+- [ ] README 정리
