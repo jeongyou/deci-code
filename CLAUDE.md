@@ -13,7 +13,8 @@
 - 패키지 매니저는 client/server 모두 `pnpm`.
 - 서버 포트는 기본 `3001`, 클라이언트 dev 서버는 기본 `5173`.
 - 배포는 완료된 상태다: client는 Vercel, server는 Render.
-- 배포 URL은 현재 저장소 문서에 기록되어 있지 않다. URL을 알게 되면 이 문서와 README/DEVLOG에 함께 기록한다.
+- Client: https://davinci-code-beta.vercel.app
+- Server: https://davinci-code-9kcw.onrender.com
 
 ## Commands
 
@@ -43,10 +44,11 @@ cd client && pnpm dev
 - 클라이언트는 `VITE_SERVER_URL`이 있으면 그 URL로 Socket.io 연결하고, 없으면 `http://localhost:3001`을 사용한다.
 - Vercel의 `VITE_SERVER_URL`은 Render 서버 URL이어야 한다.
 - 배포 관련 설정이나 URL이 바뀌면 `AGENTS.md`, `CLAUDE.md`, `DEVLOG.md`를 같이 갱신한다.
+- Vercel 환경 변수: `VITE_SERVER_URL=https://davinci-code-9kcw.onrender.com`
 
 ## Current State
 
-- 핵심 게임 로직은 구현되어 있고 `server/src/__tests__/gameLogic.test.ts`에 41개 테스트가 있다.
+- 핵심 게임 로직은 구현되어 있고 `server/src/__tests__/gameLogic.test.ts`에 42개 테스트가 있다.
 - 2026-04-22 기준 규칙 문서 기반으로 게임 룰이 크게 정리되었다.
 - 조커는 `isJoker` 플래그가 아니라 `color: 'joker'`, `number: null`로 표현한다.
 - 서버에는 `room.phase: 'draw' | 'insert' | 'guess' | 'end'`가 있고, 소켓 핸들러에서 phase를 검증한다.
@@ -57,16 +59,14 @@ cd client && pnpm dev
 - finished 상태에서는 `restart_game`으로 같은 방을 waiting 상태로 초기화해 연속 플레이할 수 있다.
 - 서버 방 상태는 메모리 기반이다. Render 재시작/슬립/스케일링 시 방 상태가 유지되지 않는다.
 - `client/README.md`는 아직 Vite 기본 템플릿 문서다.
+- 서버 턴 타임아웃은 구현 완료 (`scheduleTurnTimer` / `clearTurnTimer`).
 
 ## Next Work
 
-1. 배포 문서화.
-   - Vercel/Render 실제 URL을 `AGENTS.md`, `CLAUDE.md`, `DEVLOG.md`, README에 기록한다.
-   - 배포 환경 변수 `VITE_SERVER_URL` 값을 문서화한다.
-2. 프로젝트 README 정리.
+1. 프로젝트 README 정리.
    - 루트 README 또는 `client/README.md`를 실제 프로젝트 설명으로 교체한다.
    - 로컬 실행, 테스트, 배포 주소, 주요 규칙을 추가한다.
-3. 운영 보강.
+2. 운영 보강.
    - 방/플레이어 disconnect 처리 UX 개선.
    - 랜덤 매칭 취소 기능.
    - 서버 메모리 기반 방 상태의 한계를 명시하거나 persistence 도입 여부를 결정한다.
@@ -131,13 +131,28 @@ Server → Client:
 
 기능 하나를 붙일 때마다 이 순서로 진행한다.
 
-1. PLAN: 무엇을 왜 만드는지 한 문장으로 정의한다.
-2. SCOPE: 건드릴 파일을 미리 나열한다.
-3. BUILD: 서버 → 클라이언트 순서로 구현한다. 소켓 이벤트 인터페이스를 먼저 확정한다.
-4. TEST: `./check.sh`와 브라우저 수동 확인을 수행한다.
-5. ARCHITECTURE: 구조/소켓/App 전역 상태/phase가 바뀌면 `ARCHITECTURE.md`를 업데이트한다.
-6. LOG: 의미 있는 변경 후 `DEVLOG.md`에 작업 내용을 추가한다.
-7. COMMIT: 민감 파일 포함 여부를 확인하고 의미 있는 단위로 나눠 커밋한다.
+1. PLAN: `docs/PLAN.md`에 목적·범위·작업 내용을 기록하고 승인을 받는다.
+2. ISSUE: `gh issue create`로 GitHub 이슈를 만든다. 이슈 번호를 확인한다.
+3. BRANCH: `git checkout -b fix/{설명}-{이슈번호}` 또는 `feature/{설명}-{이슈번호}` 브랜치를 만든다.
+4. BUILD: 서버 → 클라이언트 순서로 구현한다. 소켓 이벤트 인터페이스를 먼저 확정한다.
+5. TEST: `./check.sh`와 브라우저 수동 확인을 수행한다. (커밋 시 hook으로 자동 실행됨)
+6. ARCHITECTURE: 구조/소켓/App 전역 상태/phase가 바뀌면 `ARCHITECTURE.md`를 업데이트한다.
+7. LOG: 의미 있는 변경 후 `DEVLOG.md`에 작업 내용을 추가한다.
+8. PR: `gh pr create`로 PR을 만든다. 본문에 `Closes #이슈번호`를 포함한다.
+9. MERGE: PR을 직접 확인 후 머지한다. 머지 시 이슈가 자동으로 닫힌다.
+
+## Branch Naming
+
+```
+fix/{설명}-{이슈번호}      # 버그 수정
+feature/{설명}-{이슈번호}  # 기능 추가
+docs/{설명}                # 문서만 변경
+```
+
+예: `fix/disconnect-ux-1`, `feature/guess-feedback-6`
+
+- `#` 기호는 쉘에서 주석으로 해석되므로 브랜치명에 사용하지 않는다.
+- PR 본문의 `Closes #N`으로 이슈를 연결한다.
 
 ## Coding Rules
 

@@ -20,6 +20,49 @@ const io = new Server(httpServer, {
 
 const rooms = new Map<string, GameRoom>();
 const waitingQueue: { socketId: string; nickname: string }[] = [];
+const turnTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+function clearTurnTimer(roomId: string): void {
+  const t = turnTimers.get(roomId);
+  if (t !== undefined) { clearTimeout(t); turnTimers.delete(roomId); }
+}
+
+function scheduleTurnTimer(room: GameRoom): void {
+  clearTurnTimer(room.id);
+  if (!room.turnStartedAt) return;
+  const snapshot = room.turnStartedAt;
+  const delay = room.turnDurationSec * 1000;
+
+  turnTimers.set(room.id, setTimeout(() => {
+    const r = rooms.get(room.id);
+    if (!r || r.status !== 'playing') return;
+    if (r.turnStartedAt !== snapshot) return; // 이미 다음 턴으로 넘어감
+
+    const currentPlayer = r.players[r.currentTurnIndex];
+    if (!currentPlayer) return;
+
+    // 조커 미배치 상태면 패 맨 뒤에 삽입
+    if (r.phase === 'insert' && r.drawnTile) {
+      insertJokerAtPosition(r, currentPlayer.id, currentPlayer.tiles.length);
+    }
+    // 이번 턴에 뽑은 타일이 패에 있으면 공개 (패널티)
+    if (r.drawnTileId) {
+      revealDrawnTileAsPlaced(r, currentPlayer.id);
+    }
+
+    const winner = checkWinner(r);
+    if (winner) {
+      r.status = 'finished'; r.phase = 'end'; r.winner = winner.id;
+      io.to(r.id).emit('game_over', winner.id, winner.nickname);
+      clearTurnTimer(r.id);
+      return;
+    }
+
+    nextTurn(r);
+    scheduleTurnTimer(r);
+    emitRoomUpdated(r);
+  }, delay));
+}
 
 function generateRoomId(): string {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -88,6 +131,7 @@ io.on('connection', (socket) => {
     if (allReady) {
       room.status = 'playing';
       dealInitialTiles(room);
+      scheduleTurnTimer(room);
       emitGameStarted(room);
     } else {
       emitRoomUpdated(room);
@@ -165,6 +209,7 @@ io.on('connection', (socket) => {
     if (correct) {
       const winner = checkWinner(room);
       if (winner) {
+        clearTurnTimer(room.id);
         room.status = 'finished';
         room.phase = 'end';
         room.winner = winner.id;
@@ -178,11 +223,13 @@ io.on('connection', (socket) => {
         room.drawnTile.isRevealed = true;
         addDrawnTileToPlayer(room, socket.id);
         nextTurn(room);
+        scheduleTurnTimer(room);
         emitRoomUpdated(room);
       } else if (room.drawnTileId) {
         // 이번 턴에 뽑아 패에 들어간 타일 공개, 턴 종료
         revealDrawnTileAsPlaced(room, socket.id);
         nextTurn(room);
+        scheduleTurnTimer(room);
         emitRoomUpdated(room);
       } else {
         // 덱이 비어 뽑은 타일 없음 → 자기 타일 직접 선택해서 공개
@@ -202,6 +249,7 @@ io.on('connection', (socket) => {
 
     const winner = checkWinner(room);
     if (winner) {
+      clearTurnTimer(room.id);
       room.status = 'finished';
       room.phase = 'end';
       room.winner = winner.id;
@@ -210,6 +258,7 @@ io.on('connection', (socket) => {
     }
 
     nextTurn(room);
+    scheduleTurnTimer(room);
     emitRoomUpdated(room);
   });
 
@@ -219,12 +268,14 @@ io.on('connection', (socket) => {
     if (room.players[room.currentTurnIndex].id !== socket.id) return;
 
     nextTurn(room);
+    scheduleTurnTimer(room);
     emitRoomUpdated(room);
   });
 
   socket.on('restart_game', () => {
     const room = findRoomByPlayer(socket.id);
     if (!room || room.status !== 'finished') return;
+    clearTurnTimer(room.id);
     resetRoomForReplay(room);
     emitRoomUpdated(room);
   });
@@ -240,9 +291,11 @@ io.on('connection', (socket) => {
 
     room.players = room.players.filter(p => p.id !== socket.id);
     if (room.players.length === 0) {
+      clearTurnTimer(room.id);
       rooms.delete(room.id);
     } else if (room.status === 'playing') {
       if (room.players.length === 1) {
+        clearTurnTimer(room.id);
         const winner = room.players[0];
         room.status = 'finished';
         room.phase = 'end';

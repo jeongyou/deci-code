@@ -4,6 +4,22 @@
 
 ---
 
+## 2026-04-23
+
+### 개발 환경 및 워크플로우 정비
+- `.claude/settings.json`: pre-commit hook (`git commit` 전 `./check.sh` 자동 실행), 위험 명령어 deny 규칙 추가
+- `ISSUES.md`: 수동 테스트 이슈 추적 파일 생성
+- `docs/PLAN.md`: 작업 플랜 기록 파일 생성
+- `.github/ISSUE_TEMPLATE/`: 버그/기능 이슈 템플릿 추가
+- `.github/pull_request_template.md`: PR 템플릿 추가 (`Closes #N` 포함)
+- `CLAUDE.md` / `AGENTS.md`: Work Cycle에 Issue→Branch→PR→Merge 단계 추가, Branch Naming 규칙 추가
+- SVG 스킬(`moai-tool-svg`) 글로벌 설치
+
+### README 작성 (이슈 #1)
+- 루트 `README.md` 신규 작성: 프로젝트 소개, 배포 링크, 기술 스택, 로컬 실행, AI 개발 방식
+
+---
+
 ## 2026-04-21
 
 ### 초기 구현 완성
@@ -88,8 +104,28 @@
 - 실제 배포 URL은 저장소 문서에 아직 미기록
 
 ### 다음 작업
-- [ ] 배포 URL 및 환경 변수 문서화
-- [ ] README 정리
+- [x] 배포 URL 및 환경 변수 문서화
+- [x] README 정리
+
+---
+
+## 2026-04-22 (속행)
+
+### 배포 URL 확정
+- Client (Vercel): https://davinci-code-beta.vercel.app
+- Server (Render): https://davinci-code-9kcw.onrender.com
+- Vercel 환경 변수 `VITE_SERVER_URL=https://davinci-code-9kcw.onrender.com` 설정 완료
+
+### 서버 턴 타임아웃 자동 처리 구현
+- `server/src/index.ts`에 `turnTimers: Map<string, Timeout>` 추가
+- `scheduleTurnTimer(room)` / `clearTurnTimer(roomId)` 헬퍼 추가
+- 턴 시작(game start, nextTurn) 시 서버 타이머 예약
+- 시간 초과 시 처리 규칙:
+  - 조커 미배치(insert 페이즈)면 패 맨 뒤에 자동 삽입
+  - 이번 턴 뽑은 타일이 패에 있으면 공개(패널티)
+  - 이후 nextTurn 호출
+- 게임 종료(game_over), 방 삭제(disconnect), 재시작(restart_game) 시 타이머 정리
+- check.sh 42개 테스트 + 전체 빌드 통과
 
 ### 게임 플레이 UX 개선
 - 뽑은 숫자 타일이 즉시 내 패에 정렬 삽입되도록 서버 턴 흐름 수정
