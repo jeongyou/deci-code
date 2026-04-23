@@ -12,6 +12,7 @@ interface Props {
   size?: TileSize;
   anim?: 'appear' | 'flip' | 'shake';
   isNew?: boolean;
+  isMine?: boolean;
 }
 
 const SIZES: Record<TileSize, { w: number; h: number; fs: number }> = {
@@ -21,7 +22,7 @@ const SIZES: Record<TileSize, { w: number; h: number; fs: number }> = {
   lg: { w: 58, h: 76, fs: 30 },
 };
 
-export function TileCard({ tile, faceDown = false, colorVisible = false, selected = false, onClick, size = 'md', anim, isNew = false }: Props) {
+export function TileCard({ tile, faceDown = false, colorVisible = false, selected = false, onClick, size = 'md', anim, isNew = false, isMine = false }: Props) {
   const [hovered, setHovered] = useState(false);
   const { w, h, fs } = SIZES[size];
 
@@ -77,7 +78,7 @@ export function TileCard({ tile, faceDown = false, colorVisible = false, selecte
         : {};
 
   const selAnim: React.CSSProperties = selected ? { animation: 'gold-pulse 1.6s ease infinite' } : {};
-  const revealOffset = tile.isRevealed ? -9 : 0;
+  const revealOffset = isMine && tile.isRevealed ? -9 : 0;
   const hoverOffset = hovered && onClick && !selected ? -3 : 0;
   const lift: React.CSSProperties = revealOffset || hoverOffset ? { transform: `translateY(${revealOffset + hoverOffset}px)` } : {};
 
