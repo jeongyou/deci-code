@@ -4,6 +4,22 @@
 
 ---
 
+## 2026-04-23
+
+### 개발 환경 및 워크플로우 정비
+- `.claude/settings.json`: pre-commit hook (`git commit` 전 `./check.sh` 자동 실행), 위험 명령어 deny 규칙 추가
+- `ISSUES.md`: 수동 테스트 이슈 추적 파일 생성
+- `docs/PLAN.md`: 작업 플랜 기록 파일 생성
+- `.github/ISSUE_TEMPLATE/`: 버그/기능 이슈 템플릿 추가
+- `.github/pull_request_template.md`: PR 템플릿 추가 (`Closes #N` 포함)
+- `CLAUDE.md` / `AGENTS.md`: Work Cycle에 Issue→Branch→PR→Merge 단계 추가, Branch Naming 규칙 추가
+- SVG 스킬(`moai-tool-svg`) 글로벌 설치
+
+### README 작성 (이슈 #1)
+- 루트 `README.md` 신규 작성: 프로젝트 소개, 배포 링크, 기술 스택, 로컬 실행, AI 개발 방식
+
+---
+
 ## 2026-04-21
 
 ### 초기 구현 완성
