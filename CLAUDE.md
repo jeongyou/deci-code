@@ -131,13 +131,28 @@ Server → Client:
 
 기능 하나를 붙일 때마다 이 순서로 진행한다.
 
-1. PLAN: 무엇을 왜 만드는지 한 문장으로 정의한다.
-2. SCOPE: 건드릴 파일을 미리 나열한다.
-3. BUILD: 서버 → 클라이언트 순서로 구현한다. 소켓 이벤트 인터페이스를 먼저 확정한다.
-4. TEST: `./check.sh`와 브라우저 수동 확인을 수행한다.
-5. ARCHITECTURE: 구조/소켓/App 전역 상태/phase가 바뀌면 `ARCHITECTURE.md`를 업데이트한다.
-6. LOG: 의미 있는 변경 후 `DEVLOG.md`에 작업 내용을 추가한다.
-7. COMMIT: 민감 파일 포함 여부를 확인하고 의미 있는 단위로 나눠 커밋한다.
+1. PLAN: `docs/PLAN.md`에 목적·범위·작업 내용을 기록하고 승인을 받는다.
+2. ISSUE: `gh issue create`로 GitHub 이슈를 만든다. 이슈 번호를 확인한다.
+3. BRANCH: `git checkout -b fix/{설명}-{이슈번호}` 또는 `feature/{설명}-{이슈번호}` 브랜치를 만든다.
+4. BUILD: 서버 → 클라이언트 순서로 구현한다. 소켓 이벤트 인터페이스를 먼저 확정한다.
+5. TEST: `./check.sh`와 브라우저 수동 확인을 수행한다. (커밋 시 hook으로 자동 실행됨)
+6. ARCHITECTURE: 구조/소켓/App 전역 상태/phase가 바뀌면 `ARCHITECTURE.md`를 업데이트한다.
+7. LOG: 의미 있는 변경 후 `DEVLOG.md`에 작업 내용을 추가한다.
+8. PR: `gh pr create`로 PR을 만든다. 본문에 `Closes #이슈번호`를 포함한다.
+9. MERGE: PR을 직접 확인 후 머지한다. 머지 시 이슈가 자동으로 닫힌다.
+
+## Branch Naming
+
+```
+fix/{설명}-{이슈번호}      # 버그 수정
+feature/{설명}-{이슈번호}  # 기능 추가
+docs/{설명}                # 문서만 변경
+```
+
+예: `fix/disconnect-ux-1`, `feature/guess-feedback-6`
+
+- `#` 기호는 쉘에서 주석으로 해석되므로 브랜치명에 사용하지 않는다.
+- PR 본문의 `Closes #N`으로 이슈를 연결한다.
 
 ## Coding Rules
 
