@@ -1,4 +1,4 @@
-# Da Vinci Code — AI Agent Guide
+# DeciCode — AI Agent Guide
 
 이 문서는 어떤 AI 도구를 사용해도 같은 맥락으로 작업을 이어갈 수 있게 만든 공통 가이드다.
 `AGENTS.md`와 `CLAUDE.md`는 항상 같은 내용으로 유지한다. 한쪽을 수정하면 다른 한쪽도 같은 변경을 반영한다.
@@ -7,7 +7,7 @@
 
 ## Project Snapshot
 
-- 보드게임 "다빈치 코드" 실시간 웹 구현체.
+- **DeciCode** — 타일 추리 게임. 다빈치 코드 보드게임에서 영감을 받은 실시간 웹 구현체.
 - `client/`: Vite + React + TypeScript + Tailwind CSS + socket.io-client.
 - `server/`: Express + Socket.io + TypeScript. REST API 없음.
 - 패키지 매니저는 client/server 모두 `pnpm`.
