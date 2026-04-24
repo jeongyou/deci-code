@@ -13,6 +13,12 @@ interface Props {
   animMap: Record<string, 'appear' | 'flip' | 'shake'>;
 }
 
+function tileSize(count: number): 'xs' | 'sm' | 'md' {
+  if (count <= 5) return 'md';
+  if (count <= 8) return 'sm';
+  return 'xs';
+}
+
 export function TopSeat({ player, isActive, isEliminated, canInteract, selTarget, onTileClick, animMap }: Props) {
   const selectedTileId = selTarget?.playerId === player.id ? selTarget.tileId : null;
   return (
@@ -29,7 +35,7 @@ export function TopSeat({ player, isActive, isEliminated, canInteract, selTarget
           tiles={player.tiles} faceDown={true} colorVisible={true}
           selectedTileId={selectedTileId}
           onTileClick={canInteract ? onTileClick : undefined}
-          animMap={animMap} size="sm"
+          animMap={animMap} size={tileSize(player.tiles.length)}
         />
       </div>
     </div>
