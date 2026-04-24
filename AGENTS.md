@@ -131,7 +131,7 @@ Server → Client:
 
 기능 하나를 붙일 때마다 이 순서로 진행한다.
 
-1. PLAN: `docs/PLAN.md`에 목적·범위·작업 내용을 기록하고 승인을 받는다.
+1. PLAN: `docs/plans/NNN-{설명}.md` (번호 순서)에 목적·범위·작업 내용을 기록하고 승인을 받는다. 완료 후 삭제하지 않고 보관한다.
 2. ISSUE: `gh issue create`로 GitHub 이슈를 만든다. 이슈 번호를 확인한다.
 3. BRANCH: `git checkout -b fix/{설명}-{이슈번호}` 또는 `feature/{설명}-{이슈번호}` 브랜치를 만든다.
 4. BUILD: 서버 → 클라이언트 순서로 구현한다. 소켓 이벤트 인터페이스를 먼저 확정한다.

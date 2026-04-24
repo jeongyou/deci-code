@@ -9,3 +9,6 @@ pnpm-debug.log*
 .env.local
 .env.*
 .claude/settings.local.json
+.playwright-mcp/
+*.png
+docs/resume-notes.md
