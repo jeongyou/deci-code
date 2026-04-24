@@ -148,10 +148,10 @@ fix/{설명}-{이슈번호}       # 버그 수정
 feature/{설명}-{이슈번호}   # 기능 추가
 refactor/{설명}-{이슈번호}  # 리팩터링 (동작 변경 없음)
 docs/{설명}-{이슈번호}      # 문서/설정 변경
-chore/{설명}-{이슈번호}     # 기타 (리브랜딩, 환경 설정 등)
+chore/{설명}-{이슈번호}     # 기타 (환경 설정 등)
 ```
 
-예: `fix/disconnect-ux-1`, `feature/guess-feedback-6`, `refactor/game-page-split-8`, `docs/readme-update-9`, `chore/rebrand-10`
+예: `fix/disconnect-ux-1`, `feature/guess-feedback-6`, `refactor/game-page-split-8`, `docs/readme-update-9`
 
 - `#` 기호는 쉘에서 주석으로 해석되므로 브랜치명에 사용하지 않는다.
 - PR 본문의 `Closes #N`으로 이슈를 연결한다.
