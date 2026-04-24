@@ -129,7 +129,7 @@ Server → Client:
 
 ## Work Cycle
 
-기능 하나를 붙일 때마다 이 순서로 진행한다.
+**모든 변경**은 예외 없이 이 순서로 진행한다. 기능, 버그, 문서, 설정 변경 모두 동일하다. main에 직접 커밋하지 않는다.
 
 1. PLAN: `docs/plans/NNN-{설명}.md` (번호 순서)에 목적·범위·작업 내용을 기록하고 승인을 받는다. 완료 후 삭제하지 않고 보관한다.
 2. ISSUE: `gh issue create`로 GitHub 이슈를 만든다. 이슈 번호를 확인한다.
@@ -146,10 +146,11 @@ Server → Client:
 ```
 fix/{설명}-{이슈번호}      # 버그 수정
 feature/{설명}-{이슈번호}  # 기능 추가
-docs/{설명}                # 문서만 변경
+docs/{설명}-{이슈번호}     # 문서/설정 변경
+chore/{설명}-{이슈번호}    # 기타 (리브랜딩, 환경 설정 등)
 ```
 
-예: `fix/disconnect-ux-1`, `feature/guess-feedback-6`
+예: `fix/disconnect-ux-1`, `feature/guess-feedback-6`, `docs/readme-update-8`, `chore/rebrand-9`
 
 - `#` 기호는 쉘에서 주석으로 해석되므로 브랜치명에 사용하지 않는다.
 - PR 본문의 `Closes #N`으로 이슈를 연결한다.
