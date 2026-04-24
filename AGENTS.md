@@ -13,7 +13,7 @@
 - 패키지 매니저는 client/server 모두 `pnpm`.
 - 서버 포트는 기본 `3001`, 클라이언트 dev 서버는 기본 `5173`.
 - 배포는 완료된 상태다: client는 Vercel, server는 Render.
-- Client: https://davinci-code-beta.vercel.app
+- Client: https://deci-code.vercel.app
 - Server: https://davinci-code-9kcw.onrender.com
 
 ## Commands

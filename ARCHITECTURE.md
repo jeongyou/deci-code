@@ -7,7 +7,7 @@
 ## 전체 구조
 
 ```
-davinci-code/
+decicod/
 ├── check.sh         개발 하네스 (test → build server → build client)
 ├── client/          Vite + React + TypeScript (포트 5173)
 └── server/          Node.js + Express + Socket.io (포트 3001)

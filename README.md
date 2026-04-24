@@ -2,7 +2,7 @@
 
 다빈치 코드 보드게임에서 영감을 받은 실시간 멀티플레이어 타일 추리 게임.
 
-**[플레이하기 →](https://davinci-code-beta.vercel.app)**
+**[플레이하기 →](https://deci-code.vercel.app)**
 
 ---
 
@@ -37,7 +37,7 @@
 
 | | URL |
 |--|-----|
-| 클라이언트 | https://davinci-code-beta.vercel.app |
+| 클라이언트 | https://deci-code.vercel.app |
 | 서버 | https://davinci-code-9kcw.onrender.com |
 
 > Render 무료 플랜을 사용해 첫 요청 시 콜드 스타트(~30초)가 있을 수 있다.

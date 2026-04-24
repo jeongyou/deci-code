@@ -33,7 +33,7 @@
 - 랜덤 매칭 대기 중 에러 토스트 뜨던 문제 수정
 
 ### 환경
-- GitHub 레포 생성: https://github.com/jeongyou/davinci-code
+- GitHub 레포 생성: https://github.com/jeongyou/deci-code
 - 스킬 설치: react-best-practices, composition-patterns, deploy-to-vercel
 
 ### 테스트 자동화
@@ -112,7 +112,7 @@
 ## 2026-04-22 (속행)
 
 ### 배포 URL 확정
-- Client (Vercel): https://davinci-code-beta.vercel.app
+- Client (Vercel): https://deci-code.vercel.app
 - Server (Render): https://davinci-code-9kcw.onrender.com
 - Vercel 환경 변수 `VITE_SERVER_URL=https://davinci-code-9kcw.onrender.com` 설정 완료
 
