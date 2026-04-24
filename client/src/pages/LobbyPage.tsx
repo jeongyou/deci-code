@@ -79,9 +79,9 @@ export function LobbyPage({ onJoinRoom, onJoinRandom }: Props) {
       <div style={{ width: 'min(380px,90vw)', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 1 }}>
         {/* 타이틀 */}
         <div style={{ textAlign: 'center', marginBottom: 40 }}>
-          <p style={{ fontFamily: 'Playfair Display', fontSize: 11, letterSpacing: 6, color: '#4e6080', textTransform: 'uppercase', marginBottom: 12 }}>Board Game</p>
+          <p style={{ fontFamily: 'Inter', fontSize: 11, letterSpacing: 6, color: '#4e6080', textTransform: 'uppercase', marginBottom: 12 }}>타일 추리 게임 · Tile Deduction Game</p>
           <h1 style={{ fontFamily: 'Playfair Display', fontSize: 38, fontWeight: 900, color: '#c8a84b', letterSpacing: 2, lineHeight: 1.1 }}>
-            Da Vinci<br/>Code
+            DeciCode
           </h1>
           <div style={{ width: 40, height: 1, background: '#2a3a54', margin: '16px auto 0' }}/>
         </div>

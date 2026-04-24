@@ -151,7 +151,7 @@ export function GamePage({ room, myId, drawnTile, hasDrawnThisTurn, mustPlaceJok
 
       {/* NAV */}
       <div style={{ height: 46, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', borderBottom: '1px solid #2a3a54', flexShrink: 0, background: '#1b2536' }}>
-        <span style={{ fontFamily: 'Playfair Display', fontSize: 15, letterSpacing: 4, color: '#c8a84b', fontWeight: 700 }}>DA VINCI CODE</span>
+        <span style={{ fontFamily: 'Playfair Display', fontSize: 15, letterSpacing: 4, color: '#c8a84b', fontWeight: 700 }}>DeciCode</span>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <div style={{ width: 11, height: 15, borderRadius: 2, background: '#bfbab0', border: '1px solid #a09890' }}/><span style={{ fontFamily: 'Inter', fontSize: 10, color: '#8898b0' }}>백</span>
