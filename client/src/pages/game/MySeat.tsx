@@ -21,8 +21,8 @@ export function MySeat({ me, isMyTurn, animMap, drawnTileId }: Props) {
           {me.tiles.filter(t => !t.isRevealed).length} / {me.tiles.length}
         </span>
       </div>
-      <div style={{ overflowX: 'auto' }}>
-        <TileRow tiles={me.tiles} faceDown={false} colorVisible={false} animMap={animMap} drawnTileId={drawnTileId} size="lg"/>
+      <div style={{ overflowX: 'auto', paddingTop: 12 }}>
+        <TileRow tiles={me.tiles} faceDown={false} colorVisible={false} animMap={animMap} drawnTileId={drawnTileId} size="lg" isMine={true}/>
       </div>
     </div>
   );

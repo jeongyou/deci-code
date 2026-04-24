@@ -11,9 +11,10 @@ interface Props {
   animMap: Record<string, 'appear' | 'flip' | 'shake'>;
   drawnTileId?: string | null;
   size?: 'xs' | 'sm' | 'md' | 'lg';
+  isMine?: boolean;
 }
 
-export function TileRow({ tiles, faceDown, colorVisible, selectedTileId, onTileClick, animMap, drawnTileId, size = 'md' }: Props) {
+export function TileRow({ tiles, faceDown, colorVisible, selectedTileId, onTileClick, animMap, drawnTileId, size = 'md', isMine = false }: Props) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 0 }}>
       {tiles.map((tile, idx) => (
@@ -34,6 +35,7 @@ export function TileRow({ tiles, faceDown, colorVisible, selectedTileId, onTileC
             onClick={onTileClick && !tile.isRevealed ? () => onTileClick(tile.id, idx) : undefined}
             anim={animMap[tile.id]}
             isNew={tile.id === drawnTileId}
+            isMine={isMine}
           />
         </div>
       ))}
