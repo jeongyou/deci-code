@@ -1,6 +1,6 @@
 {
   "permissions": {
-    "allow": ["Bash(*)"],
+    "allow": ["Bash(*)", "mcp__playwright__*"],
     "deny": [
       "Bash(rm -rf *)",
       "Bash(sudo rm *)",
