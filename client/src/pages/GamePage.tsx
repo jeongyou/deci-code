@@ -80,7 +80,6 @@ export function GamePage({ room, myId, drawnTile, hasDrawnThisTurn, mustPlaceJok
     setSelTarget(null);
     setShowGuess(false);
     setGuessedCorrectly(false);
-    setOverlayResult(null);
     setLog(p => [`${currentPlayer?.nickname ?? '?'}의 차례`, ...p.slice(0, 29)]);
   }
 
@@ -101,7 +100,7 @@ export function GamePage({ room, myId, drawnTile, hasDrawnThisTurn, mustPlaceJok
     setSeenGuessResult(lastGuessResult);
     if (lastGuessResult) {
       setGuessedCorrectly(lastGuessResult.correct);
-      if (isMyTurn) setOverlayResult(lastGuessResult);
+      if (room.players[seenTurnIndex]?.id === myId) setOverlayResult(lastGuessResult);
       const { tile, guessedColor, guessedNumber, guesserNickname, targetNickname } = lastGuessResult;
       const label = tile.color === 'joker' ? '조커' : `${tile.color === 'white' ? '백' : '흑'}${tile.number}`;
       const guessedLabel = guessedColor === 'joker' ? '조커' : `${guessedColor === 'white' ? '백' : '흑'}${guessedNumber}`;
