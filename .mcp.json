@@ -2,6 +2,10 @@
   "mcpServers": {
     "playwright": {
       "command": "npx",
+      "args": ["@playwright/mcp@latest", "--headless"]
+    },
+    "playwright-visible": {
+      "command": "npx",
       "args": ["@playwright/mcp@latest"]
     }
   }
