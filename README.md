@@ -84,7 +84,7 @@ pnpm dev        # localhost:5173
 ## 프로젝트 구조
 
 ```
-decicod/
+deci-code/
 ├── client/          Vite + React + TypeScript (포트 5173)
 ├── server/          Node.js + Express + Socket.io (포트 3001)
 ├── check.sh         통합 검증 스크립트
