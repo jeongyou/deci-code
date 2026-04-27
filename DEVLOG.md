@@ -4,6 +4,20 @@
 
 ---
 
+## 2026-04-28
+
+### 정답/오답 피드백 UI 개선 (PR #27)
+- `GuessResultOverlay.tsx` 신규 컴포넌트: 추리 결과를 전체화면 오버레이로 강조 표시
+  - 정답: 초록 틴트 배경 + ✓ 아이콘 + "정답!" + 공개된 타일 레이블
+  - 오답: 빨간 틴트 배경 + ✕ 아이콘 + "오답" + 선언값 표시, 2.4초 후 자동 종료
+  - scale + fade-in 등장 애니메이션 (`result-card-in` keyframes)
+- `GamePage.tsx`: `overlayResult` 상태 추가, 내 차례에서 추리 결과 수신 시 오버레이 표시
+- `CenterZone.tsx`: `correct` phase 버튼 패딩/폰트 개선 (fallback)
+- `useSocket.ts`: DEV 환경에서 `window.__devSocket` 노출 (Playwright 테스트 편의)
+- `docs/screenshots/`: Playwright MCP 테스트 스크린샷 추가
+
+---
+
 ## 2026-04-27
 
 ### 리브랜딩 및 URL 정리

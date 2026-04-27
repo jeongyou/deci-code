@@ -22,6 +22,7 @@ export function useSocket(events: SocketEvents) {
   useEffect(() => {
     const socket = io(SERVER_URL);
     socketRef.current = socket;
+    if (import.meta.env.DEV) (window as unknown as Record<string, unknown>).__devSocket = socket;
 
     socket.on('room_joined', (room, playerId) => events.onRoomJoined?.(room, playerId));
     socket.on('room_updated', (room) => events.onRoomUpdated?.(room));
