@@ -1,6 +1,29 @@
-# Da Vinci Code — Dev Log
+# DeciCode — Dev Log
 
 작업 기록. 커밋 히스토리로 타임라인 확인 가능.
+
+---
+
+## 2026-04-27
+
+### 리브랜딩 및 URL 정리
+- 프로젝트명 Da Vinci Code → **DeciCode** 완료
+- GitHub 레포 `davinci-code` → `deci-code` rename
+- Vercel URL `davinci-code-beta.vercel.app` → `deci-code.vercel.app`
+- 문서 전체 URL 일괄 업데이트 (README, CLAUDE.md, AGENTS.md, ARCHITECTURE.md, DEVLOG.md)
+- `client/index.html` 타이틀/메타 설명 업데이트
+- LobbyPage 서브타이틀, GamePage 헤더 DeciCode로 변경
+
+### ADR(Architecture Decision Records) 도입
+- `docs/decisions/` 폴더 신설
+- 001: Socket.io 선택, 002: pnpm 모노레포, 003: Posthog+Sentry 선택 기록
+
+### Posthog + Sentry 모니터링 연동 (PR #17)
+- Posthog: 방문자, 유입 경로, 게임 이벤트 추적 (`game_started`, `game_ended`, `guess_correct`, `guess_wrong`)
+- Sentry: 클라이언트 React 오류 + 서버 Express 오류 추적
+- 환경변수 없으면 초기화 skip (로컬 개발 무관)
+- Vercel: `VITE_POSTHOG_KEY`, `VITE_SENTRY_DSN` 추가 완료
+- Posthog Session Replay 활성화
 
 ---
 
