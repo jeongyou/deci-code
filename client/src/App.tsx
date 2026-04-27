@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
+import posthog from 'posthog-js';
 import type { GameRoom, GuessResult, Tile, TileColor } from './types';
 import { useSocket } from './hooks/useSocket';
 import { LobbyPage } from './pages/LobbyPage';
@@ -60,6 +61,7 @@ export default function App() {
       setLastGuessResult(null);
       setGameOver(null);
       setPage('game');
+      posthog.capture('game_started', { player_count: r.players.length });
     }, []),
 
     onTileDrawn: useCallback((tile: Tile) => {
@@ -77,6 +79,7 @@ export default function App() {
       if (!result.correct) {
         setHasDrawnThisTurn(false);
       }
+      posthog.capture(result.correct ? 'guess_correct' : 'guess_wrong');
       setTimeout(() => setLastGuessResult(null), 2500);
     }, []),
 
@@ -87,6 +90,7 @@ export default function App() {
     onGameOver: useCallback((winnerId: string, winnerNickname: string) => {
       setGameOver({ winnerId, winnerNickname });
       setPage('finished');
+      posthog.capture('game_ended', { won: winnerId === myIdRef.current });
     }, []),
 
     onError: useCallback((message: string) => {

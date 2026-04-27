@@ -1,3 +1,9 @@
+import * as Sentry from '@sentry/node';
+
+if (process.env.SENTRY_DSN) {
+  Sentry.init({ dsn: process.env.SENTRY_DSN, tracesSampleRate: 0.1 });
+}
+
 import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
@@ -320,6 +326,11 @@ function findRoomByPlayer(socketId: string): GameRoom | null {
 }
 
 const PORT = process.env.PORT || 3001;
+
+if (process.env.SENTRY_DSN) {
+  Sentry.setupExpressErrorHandler(app);
+}
+
 httpServer.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
