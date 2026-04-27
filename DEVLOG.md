@@ -25,6 +25,10 @@
 - Vercel: `VITE_POSTHOG_KEY`, `VITE_SENTRY_DSN` 추가 완료
 - Posthog Session Replay 활성화
 
+### 작업 사이클 개선
+- ISSUES.md 업데이트를 Work Cycle 공식 단계(8번)로 추가
+- PR 자동 머지 금지 명시 — AI가 PR 만든 후 직접 확인하고 머지
+
 ---
 
 ## 2026-04-23

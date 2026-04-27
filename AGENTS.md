@@ -138,8 +138,9 @@ Server → Client:
 5. TEST: `./check.sh`와 브라우저 수동 확인을 수행한다. (커밋 시 hook으로 자동 실행됨)
 6. ARCHITECTURE: 구조/소켓/App 전역 상태/phase가 바뀌면 `ARCHITECTURE.md`를 업데이트한다.
 7. LOG: 의미 있는 변경 후 `DEVLOG.md`에 작업 내용을 추가한다.
-8. PR: `gh pr create`로 PR을 만든다. 본문에 `Closes #이슈번호`를 포함한다.
-9. MERGE: PR을 직접 확인 후 머지한다. 머지 시 이슈가 자동으로 닫힌다.
+8. ISSUES: `ISSUES.md`에 해당 버그가 있으면 상태를 `[해결됨]`으로 바꾸고 해결 날짜와 PR 번호를 기록한다.
+9. PR: `gh pr create`로 PR을 만든다. 본문에 `Closes #이슈번호`를 포함한다. PR은 만든 후 직접 확인 후 머지한다 — AI가 자동으로 머지하지 않는다.
+10. MERGE: PR을 직접 확인 후 머지한다. 머지 시 이슈가 자동으로 닫힌다.
 
 ## Branch Naming
 
