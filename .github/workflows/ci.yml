@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: |
+            server/pnpm-lock.yaml
+            client/pnpm-lock.yaml
+
+      - name: Install server deps
+        run: cd server && pnpm install --frozen-lockfile
+
+      - name: Install client deps
+        run: cd client && pnpm install --frozen-lockfile
+
+      - name: Server tests
+        run: cd server && pnpm test
+
+      - name: Server build
+        run: cd server && pnpm build
+
+      - name: Client build
+        run: cd client && pnpm build
