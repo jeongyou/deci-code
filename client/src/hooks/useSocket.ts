@@ -35,7 +35,10 @@ export function useSocket(events: SocketEvents) {
     socket.on('game_over', (winnerId, winnerNickname) => events.onGameOver?.(winnerId, winnerNickname));
     socket.on('error', (msg) => events.onError?.(msg));
 
-    return () => { socket.disconnect(); };
+    return () => {
+      if (import.meta.env.DEV) delete (window as unknown as Record<string, unknown>).__devSocket;
+      socket.disconnect();
+    };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
