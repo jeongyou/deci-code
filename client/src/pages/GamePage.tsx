@@ -3,6 +3,7 @@ import type { GameRoom, GuessResult, Tile, TileColor } from '../types';
 import { Toasts } from '../components/Toasts';
 import type { Toast } from '../components/Toasts';
 import { GuessModal } from './game/GuessModal';
+import { GuessResultOverlay } from './game/GuessResultOverlay';
 import { PenaltyModal } from './game/PenaltyModal';
 import { JokerInsertModal } from './game/JokerInsertModal';
 import { TopSeat } from './game/TopSeat';
@@ -31,6 +32,7 @@ export function GamePage({ room, myId, drawnTile, hasDrawnThisTurn, mustPlaceJok
   const [showGuess, setShowGuess] = useState(false);
   const [selTarget, setSelTarget] = useState<SelTarget | null>(null);
   const [guessedCorrectly, setGuessedCorrectly] = useState(false);
+  const [overlayResult, setOverlayResult] = useState<typeof lastGuessResult>(null);
   const [seenTurnIndex, setSeenTurnIndex] = useState(room.currentTurnIndex);
   const [seenGuessResult, setSeenGuessResult] = useState(lastGuessResult);
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -98,6 +100,7 @@ export function GamePage({ room, myId, drawnTile, hasDrawnThisTurn, mustPlaceJok
     setSeenGuessResult(lastGuessResult);
     if (lastGuessResult) {
       setGuessedCorrectly(lastGuessResult.correct);
+      if (room.players[seenTurnIndex]?.id === myId) setOverlayResult(lastGuessResult);
       const { tile, guessedColor, guessedNumber, guesserNickname, targetNickname } = lastGuessResult;
       const label = tile.color === 'joker' ? '조커' : `${tile.color === 'white' ? '백' : '흑'}${tile.number}`;
       const guessedLabel = guessedColor === 'joker' ? '조커' : `${guessedColor === 'white' ? '백' : '흑'}${guessedNumber}`;
@@ -145,6 +148,13 @@ export function GamePage({ room, myId, drawnTile, hasDrawnThisTurn, mustPlaceJok
     <div style={{ width: '100vw', height: '100vh', background: '#131c2b', display: 'flex', flexDirection: 'column', overflow: 'hidden', animation: 'screen-in .3s ease' }}>
 
       {showGuess && <GuessModal onGuess={handleGuess} onCancel={() => { setShowGuess(false); setSelTarget(null); }}/>}
+      {overlayResult && (
+        <GuessResultOverlay
+          result={overlayResult}
+          onContinue={() => { setOverlayResult(null); setGuessedCorrectly(false); }}
+          onEnd={() => { setOverlayResult(null); if (overlayResult.correct) onSkipGuess(); }}
+        />
+      )}
       {mustRevealTile && me && <PenaltyModal myTiles={me.tiles} onReveal={onRevealOwnTile}/>}
       {mustPlaceJoker && me && <JokerInsertModal myTiles={me.tiles} onPlace={onPlaceJoker}/>}
       <Toasts list={toasts}/>

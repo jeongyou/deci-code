@@ -60,11 +60,11 @@ export function CenterZone({ phase, roomPhase, isCurrentPlayerResolvingDraw, dec
           )}
           {phase === 'select' && <p style={{ fontFamily: 'Inter', fontSize: 10, color: '#c8a84b', animation: 'blink 2s ease infinite' }}>타일을 선택하세요</p>}
           {phase === 'correct' && (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-              <p style={{ fontFamily: 'Inter', fontSize: 10, color: '#6fcf97' }}>정답!</p>
-              <div style={{ display: 'flex', gap: 6 }}>
-                <button onClick={onContinueGuess} style={{ background: 'none', border: '1px solid #3b8a5e', color: '#6fcf97', borderRadius: 3, padding: '5px 10px', fontFamily: 'Inter', fontSize: 11, cursor: 'pointer' }}>계속</button>
-                <button onClick={onSkipGuess} style={{ background: 'none', border: '1px solid #2a3a54', color: '#8898b0', borderRadius: 3, padding: '5px 10px', fontFamily: 'Inter', fontSize: 11, cursor: 'pointer' }}>종료</button>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+              <p style={{ fontFamily: 'Inter', fontSize: 11, color: '#6fcf97' }}>정답!</p>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={onContinueGuess} style={{ background: 'rgba(39,174,96,.12)', border: '1.5px solid #27ae60', color: '#6fcf97', borderRadius: 5, padding: '10px 16px', minHeight: 48, fontFamily: 'Inter', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>계속 추리</button>
+                <button onClick={onSkipGuess} style={{ background: 'none', border: '1.5px solid #2a3a54', color: '#8898b0', borderRadius: 5, padding: '10px 16px', minHeight: 48, fontFamily: 'Inter', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>턴 종료</button>
               </div>
             </div>
           )}

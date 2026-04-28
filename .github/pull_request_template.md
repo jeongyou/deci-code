@@ -27,15 +27,11 @@ Closes #
 - [ ] `./check.sh` 통과
 - [ ] Playwright MCP 브라우저 테스트
 
-### Playwright MCP 테스트 결과
+### Playwright MCP 테스트 결과 스크린샷
 
 <!-- 변경된 UI/UX를 Playwright MCP로 직접 조작해 확인한 내용을 기록합니다. -->
 <!-- 예: "두 탭에서 각각 접속 후 게임 진행 → 기대 동작 확인 ✓" -->
 
----
-
-## 이전 상태 → 현재 상태
-
-| 이전 | 현재 |
+| 이전 | 이후 |
 |------|------|
-| `test-before-xxx.png` | `test-after-xxx.png` |
+| ![before](docs/screenshots/before-xxx.png) | ![after](docs/screenshots/after-xxx.png) |

@@ -22,6 +22,7 @@ export function useSocket(events: SocketEvents) {
   useEffect(() => {
     const socket = io(SERVER_URL);
     socketRef.current = socket;
+    if (import.meta.env.DEV) (window as unknown as Record<string, unknown>).__devSocket = socket;
 
     socket.on('room_joined', (room, playerId) => events.onRoomJoined?.(room, playerId));
     socket.on('room_updated', (room) => events.onRoomUpdated?.(room));
@@ -34,7 +35,10 @@ export function useSocket(events: SocketEvents) {
     socket.on('game_over', (winnerId, winnerNickname) => events.onGameOver?.(winnerId, winnerNickname));
     socket.on('error', (msg) => events.onError?.(msg));
 
-    return () => { socket.disconnect(); };
+    return () => {
+      if (import.meta.env.DEV) delete (window as unknown as Record<string, unknown>).__devSocket;
+      socket.disconnect();
+    };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return {

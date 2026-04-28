@@ -135,12 +135,15 @@ Server → Client:
 2. ISSUE: `gh issue create`로 GitHub 이슈를 만든다. 이슈 번호를 확인한다.
 3. BRANCH: `git checkout -b fix/{설명}-{이슈번호}` 또는 `feature/{설명}-{이슈번호}` 브랜치를 만든다.
 4. BUILD: 서버 → 클라이언트 순서로 구현한다. 소켓 이벤트 인터페이스를 먼저 확정한다.
-5. TEST: `./check.sh`와 브라우저 수동 확인을 수행한다. (커밋 시 hook으로 자동 실행됨)
+5. TEST: `./check.sh`와 Playwright MCP 브라우저 테스트를 수행한다. (커밋 시 hook으로 check.sh 자동 실행됨)
+   - UI/UX 변경이 있는 경우: 구현 **전** 스크린샷(`docs/screenshots/before-{설명}.png`)과 **후** 스크린샷(`docs/screenshots/after-{설명}.png`)을 모두 찍어 커밋한다.
+   - PR 본문의 "이전 상태 → 현재 상태" 표에 `raw.githubusercontent.com` URL로 before/after 이미지를 나란히 삽입한다.
 6. ARCHITECTURE: 구조/소켓/App 전역 상태/phase가 바뀌면 `ARCHITECTURE.md`를 업데이트한다.
 7. LOG: 의미 있는 변경 후 `DEVLOG.md`에 작업 내용을 추가한다.
 8. ISSUES: `ISSUES.md`에 해당 버그가 있으면 상태를 `[해결됨]`으로 바꾸고 해결 날짜와 PR 번호를 기록한다.
 9. PR: `gh pr create`로 PR을 만든다. 본문에 `Closes #이슈번호`를 포함한다. PR은 만든 후 직접 확인 후 머지한다 — AI가 자동으로 머지하지 않는다.
-10. MERGE: PR을 직접 확인 후 머지한다. 머지 시 이슈가 자동으로 닫힌다.
+10. CODERABBIT: PR 생성 후 CodeRabbit 자동 리뷰가 달리면 `gh pr view {N} --comments`로 내용을 확인한다. 반영할 가치가 있는 지적(버그 가능성, 누락된 엣지케이스, 명확한 개선)은 수정 후 같은 브랜치에 커밋한다. 스타일 의견이나 불필요한 변경은 무시한다.
+11. MERGE: PR을 직접 확인 후 머지한다. 머지 시 이슈가 자동으로 닫힌다.
 
 ## Branch Naming
 
