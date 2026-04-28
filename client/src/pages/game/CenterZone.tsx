@@ -63,8 +63,8 @@ export function CenterZone({ phase, roomPhase, isCurrentPlayerResolvingDraw, dec
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
               <p style={{ fontFamily: 'Inter', fontSize: 11, color: '#6fcf97' }}>정답!</p>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button onClick={onContinueGuess} style={{ background: 'rgba(39,174,96,.12)', border: '1.5px solid #27ae60', color: '#6fcf97', borderRadius: 5, padding: '10px 16px', fontFamily: 'Inter', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>계속 추리</button>
-                <button onClick={onSkipGuess} style={{ background: 'none', border: '1.5px solid #2a3a54', color: '#8898b0', borderRadius: 5, padding: '10px 16px', fontFamily: 'Inter', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>턴 종료</button>
+                <button onClick={onContinueGuess} style={{ background: 'rgba(39,174,96,.12)', border: '1.5px solid #27ae60', color: '#6fcf97', borderRadius: 5, padding: '10px 16px', minHeight: 48, fontFamily: 'Inter', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>계속 추리</button>
+                <button onClick={onSkipGuess} style={{ background: 'none', border: '1.5px solid #2a3a54', color: '#8898b0', borderRadius: 5, padding: '10px 16px', minHeight: 48, fontFamily: 'Inter', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>턴 종료</button>
               </div>
             </div>
           )}
